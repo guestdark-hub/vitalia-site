@@ -5393,54 +5393,6 @@
    ],
    "pronto": true
   },
-  "Aranhas > Corpo pequeno - tres estagios para revisar": {
-   "tipo": "item",
-   "w": 1,
-   "h": 1,
-   "frames": 3,
-   "layers": 1,
-   "speed": 200,
-   "dirs": [
-    [],
-    [],
-    [
-     [
-      [
-       1526
-      ]
-     ],
-     [
-      [
-       1527
-      ]
-     ],
-     [
-      [
-       1528
-      ]
-     ]
-    ],
-    []
-   ],
-   "slots": [
-    [
-     [
-      1526
-     ]
-    ],
-    [
-     [
-      1527
-     ]
-    ],
-    [
-     [
-      1528
-     ]
-    ]
-   ],
-   "pronto": true
-  },
   "Efeitos > Vortice espectral": {
    "tipo": "item",
    "w": 1,
