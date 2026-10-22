@@ -33,6 +33,11 @@ button.on{background:var(--accent);color:#000;border-color:var(--accent)}
 #ctx{position:fixed;display:none;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px;min-width:200px;box-shadow:0 6px 24px #000a}
 #ctx button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 10px}
 #ctx button:hover{background:var(--bg)} #ctx button.danger{color:#ff8a7a} #ctx hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+#pick{position:fixed;display:none;flex-direction:column;gap:6px;z-index:61;width:320px;max-height:70vh;background:var(--panel);border:1px solid var(--accent);border-radius:8px;padding:8px;box-shadow:0 8px 30px #000c}
+#pick .ph{display:flex;justify-content:space-between;align-items:center;gap:6px} #pick .ph button{border:0;background:none}
+#pick .plist{overflow:auto;flex:1;min-height:120px;border:1px solid var(--line);border-radius:5px}
+#pick .plist div{padding:4px 8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #pick .plist div:hover{background:var(--bg);color:var(--accent)}
+#pick .plist div.cur{color:var(--muted)} #pick .proot{font-style:italic;color:var(--muted)} #pick .pnew{text-align:left}
 .cats .arr{display:inline-block;width:14px;color:var(--muted);font-weight:400;cursor:pointer}
 .cats div.drop{outline:2px dashed var(--accent);background:var(--bg)}
 .tabs{border-bottom:1px solid var(--line);padding-bottom:8px}
@@ -142,6 +147,7 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
 </div>
 <div id="toast"></div>
 <div id="ctx"></div>
+<div id="pick"></div>
 <script>
 const N=39252, PER=400, COLS=20, PAGES=Math.ceil(N/PER);
 const $=id=>document.getElementById(id);
@@ -445,10 +451,7 @@ function under(k){ const p=k+' > '; return {sub:Object.keys(cats).filter(x=>x.st
 function deleteCategory(k,deep){ delete cats[k]; if(deep){const u=under(k); u.sub.forEach(x=>delete cats[x]); u.grp.forEach(x=>delete groups[x])} if(filter===k||(deep&&filter&&filter.startsWith(k+' > '))) filter=null }
 function renameCategory(k){
   const n=cleanName(prompt('Novo nome da categoria (use > para subcategoria):',k)); if(!n||n===k) return;
-  apply(()=>{ const ren=x=>n+x.slice(k.length);
-    if(cats[k]){cats[n]=[...new Set([...(cats[n]||[]),...cats[k]])]; delete cats[k]}
-    const u=under(k); u.sub.forEach(x=>{cats[ren(x)]=cats[x]; delete cats[x]}); u.grp.forEach(x=>{const g=groups[x]; delete groups[x]; groups[uniqueKey(ren(x))]=g});
-    if(filter===k) filter=n });
+  apply(()=>moveCatTo(k,n));
 }
 // menu
 function menu(ev,items){
@@ -479,6 +482,8 @@ function spriteMenu(ev,id){
   menu(ev,[
     filter&&{label:`Excluir da categoria "${leaf(filter)}"`+(n>1?` (${n})`:''),danger:true,fn:()=>{apply(()=>removeSprites(ids,filter));ids.forEach(x=>sel.delete(x));toast(n+' sprite(s) excluída(s) de '+filter)}},
     !filter&&inCat&&{label:'Excluir das categorias'+(n>1?` (${inCat})`:''),danger:true,fn:()=>{apply(()=>removeSprites(ids,null));ids.forEach(x=>sel.delete(x));toast(inCat+' sprite(s) tirada(s) das categorias')}},
+    {label:'Mover para...'+(n>1?` (${n})`:''),fn:()=>picker(ev,n>1?`Mover ${n} sprites para`:'Mover sprite #'+id+' para',c=>{apply(()=>moveSprites(ids,c));ids.forEach(x=>sel.delete(x));render();toast(n+' sprite(s) movida(s) para '+(c||'(sem categoria)'))},{root:true,current:filter})},
+    '-',
     !filter&&!inCat&&{label:'Não está em nenhuma categoria',fn:()=>{}},
     sel.size?'-':null,
     sel.size&&{label:'Limpar seleção ('+sel.size+')',fn:()=>{sel.clear();render()}},
@@ -489,6 +494,7 @@ function catMenu(ev,k){
   menu(ev,[
     cats[k]&&{label:'Abrir',fn:()=>{filter=k;setView('sprites')}},
     {label:'Renomear...',fn:()=>renameCategory(k)},
+    {label:'Mover para...',fn:()=>picker(ev,'Mover "'+leaf(k)+'" para dentro de',c=>{const n=c?c+' > '+leaf(k):leaf(k);apply(()=>moveCatTo(k,n));toast(leaf(k)+' movida para '+(c||'o topo'))},{root:true,current:parentOf(k),exclude:x=>x===k||x.startsWith(k+' > ')})},
     '-',
     cats[k]&&{label:`Excluir categoria (${cats[k].length} sprites)`,danger:true,fn:()=>{apply(()=>deleteCategory(k,false));toast('Categoria excluída: '+k)}},
     extra&&{label:`Excluir com tudo dentro (${u.sub.length} subcategorias, ${u.grp.length} montados)`,danger:true,fn:()=>{ if(confirm('Excluir "'+k+'" e tudo que está dentro dela?')){apply(()=>deleteCategory(k,true));toast('Excluído: '+k)} }},
@@ -498,11 +504,51 @@ function groupMenu(ev,k){
   const keys=(selG.has(k)&&selG.size>1)?[...selG]:[k], n=keys.length;
   menu(ev,[
     n===1&&{label:'Abrir no montador',fn:()=>{loadGroup(k);scrollTo(0,0)}},
+    {label:'Mover para...'+(n>1?` (${n})`:''),fn:()=>picker(ev,n>1?`Mover ${n} montados para`:'Mover "'+leaf(k)+'" para',c=>{apply(()=>keys.forEach(x=>moveGroup(x,c)));selG.clear();toast((n>1?n+' montados movidos':leaf(k)+' movido')+' para '+(c||'(sem categoria)'))},{root:true,current:parentOf(k)})},
     n===1&&{label:'Renomear...',fn:()=>{const nm=cleanName(prompt('Novo nome:',leaf(k)));if(nm)apply(()=>{const g=groups[k];delete groups[k];const p=parentOf(k);groups[uniqueKey(p?p+' > '+nm:nm)]=g})}},
     '-',
     {label:n>1?`Excluir ${n} montados`:'Excluir',danger:true,fn:()=>{apply(()=>keys.forEach(x=>delete groups[x]));selG.clear();toast(n>1?n+' montados excluídos':'Excluído: '+leaf(k))}},
   ]);
 }
+
+/* ---------- "Mover para...": escolher categoria ou subcategoria ---------- */
+function allCatPaths(){
+  const set=new Set([...Object.keys(cats)]);
+  Object.keys(groups).forEach(k=>{const p=parentOf(k); if(p) set.add(p)});
+  [...set].forEach(k=>{const p=k.split(' > ');for(let i=1;i<p.length;i++) set.add(p.slice(0,i).join(' > '))});
+  return [...set].sort((a,b)=>a.localeCompare(b));
+}
+function moveCatTo(k,n){ // renomeia/move a categoria k (e tudo dentro) para o caminho n
+  if(!n||n===k||n.startsWith(k+' > ')) return;
+  const ren=x=>n+x.slice(k.length);
+  if(cats[k]){cats[n]=[...new Set([...(cats[n]||[]),...cats[k]])]; delete cats[k]}
+  const u=under(k); u.sub.forEach(x=>{const t=ren(x); cats[t]=[...new Set([...(cats[t]||[]),...cats[x]])]; delete cats[x]});
+  u.grp.forEach(x=>{const g=groups[x]; delete groups[x]; groups[uniqueKey(ren(x))]=g});
+  if(filter===k||(filter&&filter.startsWith(k+' > '))) filter=ren(filter);
+}
+function picker(ev,title,onPick,opt={}){
+  ev&&ev.preventDefault&&ev.preventDefault(); hideMenu();
+  const box=$('pick'); box.replaceChildren();
+  const h=document.createElement('div'); h.className='ph'; h.innerHTML=`<b>${title.replace(/</g,'&lt;')}</b>`;
+  const x=document.createElement('button'); x.textContent='✕'; x.onclick=()=>box.style.display='none'; h.append(x); box.append(h);
+  const q=document.createElement('input'); q.placeholder='Buscar categoria...'; box.append(q);
+  const list=document.createElement('div'); list.className='plist'; box.append(list);
+  const nova=document.createElement('button'); nova.className='pnew'; nova.textContent='+ Nova categoria...'; box.append(nova);
+  const done=c=>{box.style.display='none'; onPick(c)};
+  nova.onclick=()=>{const n=cleanName(prompt('Nome da nova categoria (use > para subcategoria):',q.value?q.value:'')); if(n) done(n)};
+  const fill=()=>{ list.replaceChildren(); const t=q.value.trim().toLowerCase();
+    if(opt.root&&!t){const r=document.createElement('div'); r.textContent='(sem categoria)'; r.className='proot'; r.onclick=()=>done(''); list.append(r)}
+    allCatPaths().filter(k=>!(opt.exclude&&opt.exclude(k))).filter(k=>!t||k.toLowerCase().includes(t)).forEach(k=>{
+      const r=document.createElement('div'); const depth=k.split(' > ').length-1;
+      r.innerHTML=t?k.replace(/</g,'&lt;'):`<span style="padding-left:${depth*14}px">${leaf(k).replace(/</g,'&lt;')}</span>`;
+      if(opt.current===k) r.className='cur'; r.title=k; r.onclick=()=>done(k); list.append(r) }) };
+  q.oninput=fill; q.onkeydown=e=>{ if(e.key==='Enter'){const f=list.querySelector('div[title]'); if(f) f.click()} if(e.key==='Escape') box.style.display='none' };
+  fill(); box.style.display='flex';
+  const r=box.getBoundingClientRect(), cx=ev&&ev.clientX||innerWidth/2, cy=ev&&ev.clientY||innerHeight/2;
+  box.style.left=Math.max(8,Math.min(cx,innerWidth-r.width-8))+'px'; box.style.top=Math.max(8,Math.min(cy,innerHeight-r.height-8))+'px';
+  q.focus();
+}
+addEventListener('mousedown',e=>{const b=$('pick'); if(b.style.display!=='none'&&!b.contains(e.target)&&!$('ctx').contains(e.target)) b.style.display='none'});
 
 /* ---------- aba de monstros montados ---------- */
 let view='sprites', selG=new Set(), mfr=0;
