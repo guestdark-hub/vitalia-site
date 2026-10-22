@@ -41,6 +41,8 @@ button.on{background:var(--accent);color:#000;border-color:var(--accent)}
 .slot{width:40px;height:40px;background:#0e0f11;border:1px dashed var(--line);cursor:pointer;image-rendering:pixelated;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
 .slot.act{border:2px solid var(--accent)}
 .slot div{width:32px;height:32px;transform:scale(1.2)}
+#asm.open>div:last-child{position:sticky;top:10px;align-self:start}
+h3.st{font:700 13px Georgia,serif;color:var(--accent);margin:12px 0 6px;border-top:1px solid var(--line);padding-top:8px}
 canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 25%,#1e1f23 0 50%) 0 0/16px 16px;border:1px solid var(--line);border-radius:4px}
 @media(max-width:800px){.wrap{grid-template-columns:1fr}aside{position:static;height:auto}#asm.open{grid-template-columns:1fr}}
 </style>
@@ -56,8 +58,8 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
   <div class="row"><input id="catname" placeholder="Monstros > Dragoes" style="flex:1"><button id="addcat">Salvar seleção</button></div>
   <div class="row"><button id="clearsel">Limpar seleção</button><span id="selcount" class="note"></span></div>
   <div class="cats" id="cats"></div>
-  <h2>Montador de monstros e itens</h2>
-  <p class="note">Junta os pedaços (32x32) de um monstro ou item, anima como GIF e salva o agrupamento.</p>
+  <h2>Montador de monstros</h2>
+  <p class="note">Passo a passo: formato, as 4 direções, a animação e o corpo. Ele confere o que falta e salva o monstro pronto para o Claude importar no jogo.</p>
   <div class="row"><button id="asmToggle">Abrir montador</button></div>
   <h2>Compartilhar</h2>
   <p class="note" id="savenote">Aberto pelo atalho <b>Abrir site Vitalia</b>, tudo é salvo sozinho em <code>C:\YurOTS_76\site\catalogo_sprites.json</code> (o Claude lê de lá).</p>
@@ -71,30 +73,49 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
 <main>
   <section id="asm">
     <div>
+      <h3 class="st">1. O monstro</h3>
+      <div class="row">
+        <label>Tipo <select id="mtipo"><option value="monstro">Monstro (4 direções + corpo)</option><option value="item">Item ou efeito (1 direção)</option></select></label>
+        <label>Categoria <select id="gcat" style="max-width:200px"></select></label>
+        <input id="gname" placeholder="Nome (ex.: Dragon Lord)" style="flex:1;min-width:150px">
+      </div>
+      <h3 class="st">2. Formato das sprites</h3>
       <div class="row">
         <label>Largura <input id="aw" type="number" min="1" max="4" value="2"></label>
         <label>Altura <input id="ah" type="number" min="1" max="4" value="2"></label>
-        <label>Quadros <input id="af" type="number" min="1" max="12" value="2"></label>
-        <label>Velocidade <input id="asp" type="number" min="50" max="2000" step="50" value="300"> ms</label>
+        <label>Quadros <input id="af" type="number" min="1" value="3"></label>
+        <label>Camadas <select id="alay"><option value="1">1 (normal)</option><option value="2">2 (com máscara de cor)</option></select></label>
+        <label>Velocidade <input id="asp" type="number" min="50" max="2000" step="50" value="200"> ms</label>
       </div>
-      <div class="row note">Clique num quadrado abaixo e depois numa sprite da lista (o quadrado seguinte é escolhido sozinho). Ou preencha tudo de uma vez:</div>
+      <p class="note">Largura e altura em tiles de 32x32 (dragão = 2x2). Quadros = passos da animação andando (o 1º é o monstro parado). Máscara de cor só existe em outfits de jogador; monstros usam 1 camada.</p>
+      <h3 class="st">3. Sprites da animação</h3>
       <div class="row">
         <label>1ª sprite <input id="fid" type="number" min="1" style="width:90px"></label>
-        <label title="Monstros: 4. Itens e efeitos (ex.: teleport): 1">Direções (item = 1) <input id="fdir" type="number" min="1" max="8" value="4"></label>
-        <label>Camadas <input id="flay" type="number" min="1" max="2" value="1"></label>
-        <label>Direção <select id="fd"><option value="0">norte</option><option value="1">leste</option><option value="2" selected>sul</option><option value="3">oeste</option></select></label>
+        <label id="fdl">Direções <select id="fd"><option value="all">todas</option><option value="0">norte</option><option value="1">leste</option><option value="2">sul</option><option value="3">oeste</option></select></label>
         <button id="fill">Preencher na ordem do Tibia</button>
       </div>
+      <div class="row note">Ou clique num quadrado e depois numa sprite da lista abaixo (o próximo quadrado é escolhido sozinho). Clique direito limpa.</div>
+      <div class="row" id="dirrow"><b>Direção:</b><span id="dirtabs" class="row" style="margin:0"></span></div>
       <div class="frames" id="frames"></div>
-      <div class="row" style="margin-top:10px">
-        <input id="gname" placeholder="Monstros > Dragoes > Dragao (sul)" style="flex:1;min-width:200px">
-        <button id="gsave">Salvar agrupamento</button><button id="gclear">Limpar</button>
+      <div id="corpo">
+        <h3 class="st">4. Corpo (cadáver)</h3>
+        <div class="row">
+          <label>Largura <input id="cw" type="number" min="1" max="4" value="2"></label>
+          <label>Altura <input id="ch" type="number" min="1" max="4" value="2"></label>
+          <label>1ª sprite <input id="cid" type="number" min="1" style="width:90px"></label>
+          <button id="cfill">Preencher</button>
+        </div>
+        <div class="frames" id="cframes"></div>
       </div>
+      <h3 class="st">Conferência</h3>
+      <div id="req" class="note"></div>
+      <div class="row" style="margin-top:8px"><button id="gsave" class="on">Salvar monstro</button><button id="gclear">Novo / limpar</button></div>
     </div>
     <div>
-      <div class="row"><b>Prévia</b><label>Zoom <select id="zoom"><option>2</option><option selected>3</option><option>4</option></select></label></div>
+      <div class="row"><b>Prévia</b><label>Zoom <select id="zoom"><option>1</option><option selected>2</option><option>3</option></select></label><button id="play">Pausar</button></div>
       <canvas id="cv" width="192" height="192"></canvas>
-      <div class="row" style="margin-top:8px"><button id="gif">Baixar GIF</button><button id="play">Pausar</button></div>
+      <div class="note" id="cvlab"></div>
+      <div class="row" style="margin-top:8px"><button id="gif">Baixar GIF</button></div>
     </div>
   </section>
   <div class="row"><b id="title"></b><span class="note" id="info"></span></div>
@@ -152,7 +173,7 @@ function cell(id){
   const sp=document.createElement('span'); sp.textContent=id; d.append(sp);
   const c=catOf(id); if(c){const i=document.createElement('i');i.title=c;d.append(i);d.title=c}
   d.onclick=ev=>{
-    if(asmOpen && act){ setSlot(act.f,act.r,act.c,id); return }
+    if(asmOpen && act){ setSlot(id); return }
     if(ev.shiftKey&&lastClick){const a=Math.min(lastClick,id),b=Math.max(lastClick,id);for(let x=a;x<=b;x++)sel.add(x)}
     else{ if(sel.has(id))sel.delete(id); else sel.add(id); try{navigator.clipboard.writeText('sprite #'+id)}catch(e){} toast('sprite #'+id+' copiado')}
     lastClick=id; render();
@@ -174,6 +195,7 @@ function render(){
   renderCats();
 }
 function renderCats(){
+  if(typeof asmOpen!=='undefined'&&asmOpen) fillCatSelect();
   const box=$('cats'); box.replaceChildren();
   const all=document.createElement('div'); all.innerHTML='<span>Todas as sprites</span>'; all.className=filter?'':'on'; all.onclick=()=>{filter=null;render()}; box.append(all);
   const keys=[...new Set([...Object.keys(cats),...Object.keys(groups)])].sort();
@@ -188,7 +210,7 @@ function renderCats(){
     }
     if(groups[k]){
       const d=document.createElement('div');
-      d.innerHTML=`<span style="padding-left:${depth*12}px">&#9654; ${label}</span><small>agrup.</small>`;
+      d.innerHTML=`<span style="padding-left:${depth*12}px">&#9654; ${label}</span><small>${groups[k].tipo==='monstro'?(groups[k].pronto?'monstro ✓':'rascunho'):'item'}</small>`;
       d.title='Agrupamento: '+k+' (clique para abrir no montador)'; d.onclick=()=>loadGroup(k);
       d.oncontextmenu=ev=>{ev.preventDefault(); if(confirm('Apagar o agrupamento "'+k+'"?')){delete groups[k];save();render()}};
       box.append(d);
@@ -196,77 +218,145 @@ function renderCats(){
   });
 }
 
-/* ---------- montador ---------- */
-let asmOpen=false, act=null, slots=[], playing=true, fr=0, timer=null;
+/* ---------- montador de monstros ---------- */
+// monstro salvo em groups[categoria > nome] = {tipo,w,h,frames,layers,speed,dirs[4][quadro][linha][col],mask[4][...],corpo:{w,h,slots[linha][col]},pronto}
+const DIRN=['Norte','Leste','Sul','Oeste'];
+let asmOpen=false, act=null, dirs=[[],[],[],[]], mask=[[],[],[],[]], corpo=[], dir=2, playing=true, fr=0, timer=null;
 const imgs={};
 function img(id){const p=sheetPos(id); if(!imgs[p.url]){const i=new Image();i.src=p.url;i.onload=draw;imgs[p.url]=i} return {im:imgs[p.url],x:p.x,y:p.y}}
-function dims(){return {w:+$('aw').value||1,h:+$('ah').value||1,f:+$('af').value||1}}
-function resize(){
-  const {w,h,f}=dims();
-  const old=slots; slots=[];
-  for(let a=0;a<f;a++){slots.push([]);for(let r=0;r<h;r++){slots[a].push([]);for(let c=0;c<w;c++) slots[a][r].push(((old[a]||[])[r]||[])[c]||0)}}
-  buildFrames(); draw();
+const num=(id,d)=>Math.max(1,+$(id).value||d);
+function dims(){return {w:num('aw',1),h:num('ah',1),f:num('af',1),L:+$('alay').value||1,mon:$('mtipo').value==='monstro',cw:num('cw',1),chh:num('ch',1)}}
+function grid(h,w,old){const n=[];for(let r=0;r<h;r++){n.push([]);for(let c=0;c<w;c++) n[r].push(((old||[])[r]||[])[c]||0)}return n}
+function fit(old){const {w,h,f}=dims();const n=[];for(let a=0;a<f;a++) n.push(grid(h,w,(old||[])[a]));return n}
+function dirList(){return dims().mon?[0,1,2,3]:[2]}
+function filled(g){return g.flat(2).filter(x=>x).length}
+function missing(){
+  const {w,h,f,L,mon}=dims(), out=[]; let tot=0, ok=0;
+  for(const d of dirList()) for(let a=0;a<f;a++){
+    const n=filled(dirs[d][a]?[dirs[d][a]]:[]); tot+=w*h; ok+=n; if(n<w*h) out.push((mon?DIRN[d]+' ':'')+'quadro '+(a+1)+': falta '+(w*h-n));
+    if(L===2){const m=filled(mask[d][a]?[mask[d][a]]:[]); tot+=w*h; ok+=m; if(m<w*h) out.push((mon?DIRN[d]+' ':'')+'máscara '+(a+1)+': falta '+(w*h-m))}
+  }
+  if(mon){const {cw,chh}=dims(), n=filled([corpo]); tot+=cw*chh; ok+=n; if(n<cw*chh) out.push('corpo: falta '+(cw*chh-n))}
+  return {out,tot,ok};
+}
+function renderReq(){
+  const m=missing(), box=$('req');
+  box.innerHTML = m.out.length ? `<b style="color:var(--accent)">${m.ok} de ${m.tot} sprites.</b> Falta: `+m.out.slice(0,8).join(' · ')+(m.out.length>8?' ...':'')
+    : `<b style="color:#7fd17f">Completo: ${m.tot} sprites. Pronto para o Claude importar.</b>`;
+  $('gsave').textContent = m.out.length ? 'Salvar rascunho' : 'Salvar monstro pronto';
+}
+function setDir(d){dir=d; act=null; refresh()}
+function buildDirTabs(){const box=$('dirtabs'); box.replaceChildren();
+  DIRN.forEach((nm,d)=>{const {w,h,f}=dims(); const done=filled(dirs[d])>=w*h*f;
+    const b=document.createElement('button'); b.textContent=nm+(done?' ✓':''); if(d===dir) b.className='on'; b.onclick=()=>setDir(d); box.append(b)});
+}
+function slotEl(get,setAct,isAct,clear){
+  const s=document.createElement('div'); s.className='slot'+(isAct?' act':''); const id=get();
+  if(id){const i=document.createElement('div');bg(i,id);s.append(i);s.title='sprite #'+id} else s.textContent='+';
+  s.onclick=setAct; s.oncontextmenu=ev=>{ev.preventDefault();clear();refresh()}; return s;
+}
+function block(title,w,h,arr,kind,a){
+  const fd=document.createElement('div'); fd.className='frame'; fd.innerHTML=`<b>${title}</b>`;
+  const g=document.createElement('div'); g.className='slots'; g.style.gridTemplateColumns=`repeat(${w},40px)`;
+  for(let r=0;r<h;r++) for(let c=0;c<w;c++)
+    g.append(slotEl(()=>arr[r][c],()=>{act={kind,f:a,r,c};refresh()},act&&act.kind===kind&&act.f===a&&act.r===r&&act.c===c,()=>{arr[r][c]=0}));
+  fd.append(g); return fd;
 }
 function buildFrames(){
-  const {w,h,f}=dims(), box=$('frames'); box.replaceChildren();
+  const {w,h,f,L,mon,cw,chh}=dims(), box=$('frames'); box.replaceChildren();
   for(let a=0;a<f;a++){
-    const fd=document.createElement('div'); fd.className='frame'; fd.innerHTML=`<b>Quadro ${a+1}</b>`;
-    const g=document.createElement('div'); g.className='slots'; g.style.gridTemplateColumns=`repeat(${w},40px)`;
-    for(let r=0;r<h;r++) for(let c=0;c<w;c++){
-      const s=document.createElement('div'); s.className='slot'+(act&&act.f===a&&act.r===r&&act.c===c?' act':'');
-      const id=slots[a][r][c];
-      if(id){const i=document.createElement('div');bg(i,id);s.append(i);s.title='sprite #'+id} else s.textContent='+';
-      s.onclick=()=>{act={f:a,r,c};buildFrames()};
-      s.oncontextmenu=ev=>{ev.preventDefault();slots[a][r][c]=0;buildFrames();draw()};
-      g.append(s);
-    }
-    fd.append(g); box.append(fd);
+    box.append(block(a===0?'Quadro 1 (parado)':'Quadro '+(a+1),w,h,dirs[dir][a],'anim',a));
+    if(L===2) box.append(block('Máscara '+(a+1),w,h,mask[dir][a],'mask',a));
   }
+  const cb=$('cframes'); cb.replaceChildren(); if(mon) cb.append(block('Corpo',cw,chh,corpo,'corpo',0));
 }
-function setSlot(a,r,c,id){
-  slots[a][r][c]=id;
-  const {w,h,f}=dims(); let n=(a*h+r)*w+c+1;
-  if(n<f*h*w){act={f:Math.floor(n/(h*w)),r:Math.floor((n%(h*w))/w),c:n%w}}
-  buildFrames(); draw();
+function refresh(){
+  const {mon}=dims(); if(!mon) dir=2;
+  for(let d=0;d<4;d++){dirs[d]=fit(dirs[d]); mask[d]=fit(mask[d])}
+  corpo=grid(dims().chh,dims().cw,corpo);
+  $('dirrow').style.display=mon?'':'none'; $('fdl').style.display=mon?'':'none'; $('corpo').style.display=mon?'':'none';
+  buildDirTabs(); buildFrames(); renderReq(); draw();
+}
+function nextAct(){
+  const {w,h,f,L,cw,chh}=dims(); if(!act) return;
+  if(act.kind==='corpo'){let n=act.r*cw+act.c+1; act=n<cw*chh?{kind:'corpo',f:0,r:Math.floor(n/cw),c:n%cw}:null; return}
+  let n=act.r*w+act.c+1;
+  if(n<w*h){act={...act,r:Math.floor(n/w),c:n%w};return}
+  if(L===2&&act.kind==='anim'){act={kind:'mask',f:act.f,r:0,c:0};return}
+  act = act.f+1<f ? {kind:'anim',f:act.f+1,r:0,c:0} : null;
+}
+function setSlot(id){
+  if(!act) return; const t=act.kind==='corpo'?corpo:(act.kind==='mask'?mask:dirs)[dir][act.f];
+  t[act.r][act.c]=id; nextAct(); refresh();
 }
 function fillTibia(){
-  const {w,h,f}=dims(), start=+$('fid').value, D=+$('fdir').value||1, L=+$('flay').value||1, d=+$('fd').value%D;
-  if(!start){toast('Informe a 1a sprite');return}
-  for(let a=0;a<f;a++){
-    const base=start+((a*D+d)*L)*w*h;
-    for(let hh=0;hh<h;hh++) for(let ww=0;ww<w;ww++) slots[a][h-1-hh][w-1-ww]=base+hh*w+ww;
+  const {w,h,f,L,mon}=dims(), start=+$('fid').value; if(!start){toast('Informe a 1ª sprite');return}
+  const D=mon?4:1, list=mon?($('fd').value==='all'?[0,1,2,3]:[+$('fd').value]):[2];
+  for(const d of list){ const dx=mon?d:0;
+    for(let a=0;a<f;a++) for(let l=0;l<L;l++){
+      const base=start+((a*D+dx)*L+l)*w*h, t=(l?mask:dirs)[d][a];
+      for(let hh=0;hh<h;hh++) for(let ww=0;ww<w;ww++) t[h-1-hh][w-1-ww]=base+hh*w+ww;
+    }
   }
-  buildFrames(); draw();
+  const nx=start+f*D*L*w*h; if(mon&&!+$('cid').value) $('cid').value=nx;
+  refresh(); toast(list.length>1?'4 direções preenchidas':'Preenchido');
 }
-function drawFrame(ctx,a,z){
-  const {w,h}=dims(); ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
-  for(let r=0;r<h;r++) for(let c=0;c<w;c++){
-    const id=(slots[a]||[])[r]?.[c]; if(!id) continue;
-    const s=img(id); if(s.im.complete) ctx.drawImage(s.im,s.x,s.y,32,32,c*32*z,r*32*z,32*z,32*z);
-  }
+function fillCorpo(){const {cw,chh}=dims(), s=+$('cid').value; if(!s){toast('Informe a 1ª sprite do corpo');return}
+  for(let hh=0;hh<chh;hh++) for(let ww=0;ww<cw;ww++) corpo[chh-1-hh][cw-1-ww]=s+hh*cw+ww; refresh()}
+function drawTiles(ctx,g,w,h,z,ox,oy){
+  for(let r=0;r<h;r++) for(let c=0;c<w;c++){const id=(g[r]||[])[c]; if(!id) continue;
+    const s=img(id); if(s.im.complete) ctx.drawImage(s.im,s.x,s.y,32,32,ox+c*32*z,oy+r*32*z,32*z,32*z)}
+}
+function layout(){const {w,h,mon,cw,chh}=dims(), z=+$('zoom').value, ds=dirList(), gap=8*z;
+  const W=ds.length*w*32*z+(ds.length-1)*gap+(mon?gap+cw*32*z:0), H=Math.max(h,mon?chh:0)*32*z; return {z,ds,gap,W,H}}
+function paint(ctx,a){
+  const {w,h,mon,cw,chh}=dims(), {z,ds,gap,W,H}=layout(); ctx.clearRect(0,0,W,H);
+  ds.forEach((d,i)=>drawTiles(ctx,dirs[d][a]||[],w,h,z,i*(w*32*z+gap),H-h*32*z));
+  if(mon) drawTiles(ctx,corpo,cw,chh,z,ds.length*(w*32*z+gap),H-chh*32*z);
 }
 function draw(){
-  const {w,h,f}=dims(), z=+$('zoom').value, cv=$('cv');
-  cv.width=w*32*z; cv.height=h*32*z; const ctx=cv.getContext('2d'); ctx.imageSmoothingEnabled=false;
-  drawFrame(ctx,fr%f,z);
+  const cv=$('cv'), L=layout(); cv.width=L.W; cv.height=L.H; const ctx=cv.getContext('2d'); ctx.imageSmoothingEnabled=false;
+  paint(ctx,fr%dims().f); $('cvlab').textContent=dims().mon?'Norte · Leste · Sul · Oeste · Corpo':'';
 }
-function tick(){ if(playing){fr=(fr+1)%dims().f; draw()} timer=setTimeout(tick,+$('asp').value||300) }
+function tick(){ if(playing){fr=(fr+1)%dims().f; draw()} timer=setTimeout(tick,+$('asp').value||200) }
 function loadGroup(k){
-  const g=groups[k]; $('aw').value=g.w; $('ah').value=g.h; $('af').value=g.frames; $('asp').value=g.speed||300;
-  slots=g.slots; $('gname').value=k; if(!asmOpen) toggleAsm(); buildFrames(); draw();
+  const g=groups[k];
+  $('mtipo').value=g.tipo||(g.dirs&&g.dirs.filter(x=>x&&x.length).length>1?'monstro':'item');
+  $('aw').value=g.w; $('ah').value=g.h; $('af').value=g.frames; $('asp').value=g.speed||200; $('alay').value=g.layers||1;
+  const D=g.dirs||[[],[],g.slots||[],[]]; dirs=JSON.parse(JSON.stringify(D)); mask=JSON.parse(JSON.stringify(g.mask||[[],[],[],[]]));
+  corpo=JSON.parse(JSON.stringify((g.corpo||{}).slots||[])); $('cw').value=(g.corpo||{}).w||2; $('ch').value=(g.corpo||{}).h||2;
+  const parts=k.split(' > '), nm=parts.pop(); fillCatSelect(parts.join(' > ')); $('gname').value=nm; dir=2;
+  if(!asmOpen) toggleAsm(); refresh();
 }
-function toggleAsm(){asmOpen=!asmOpen; $('asm').classList.toggle('open',asmOpen); $('asmToggle').textContent=asmOpen?'Fechar montador':'Abrir montador'; $('asmToggle').classList.toggle('on',asmOpen); if(asmOpen&&!slots.length) resize()}
+function fillCatSelect(pick){
+  const s=$('gcat'), cur=pick!==undefined?pick:s.value; s.replaceChildren();
+  const opts=new Set(Object.keys(cats));
+  Object.keys(groups).forEach(k=>{const p=k.split(' > ');p.pop();if(p.length)opts.add(p.join(' > '))});
+  const add=(v,t)=>{const o=document.createElement('option');o.value=v;o.textContent=t;s.append(o)};
+  add('','(sem categoria)'); [...opts].sort().forEach(k=>add(k,k)); add('__nova','+ nova categoria...');
+  if([...s.options].some(o=>o.value===cur)) s.value=cur;
+}
+function toggleAsm(){asmOpen=!asmOpen; $('asm').classList.toggle('open',asmOpen); $('asmToggle').textContent=asmOpen?'Fechar montador':'Abrir montador'; $('asmToggle').classList.toggle('on',asmOpen); if(asmOpen){fillCatSelect(); refresh()}}
 $('asmToggle').onclick=toggleAsm;
-['aw','ah','af'].forEach(i=>$(i).onchange=resize);
+['aw','ah','af','alay','mtipo','cw','ch'].forEach(i=>$(i).onchange=refresh);
 $('zoom').onchange=draw;
-$('fill').onclick=fillTibia;
+$('fill').onclick=fillTibia; $('cfill').onclick=fillCorpo;
 $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pausar':'Animar'};
-$('gclear').onclick=()=>{slots=[];resize()};
+$('gclear').onclick=()=>{dirs=[[],[],[],[]];mask=[[],[],[],[]];corpo=[];act=null;$('gname').value='';$('fid').value='';$('cid').value='';refresh()};
+$('gcat').onchange=()=>{ if($('gcat').value==='__nova'){const n=(prompt('Nome da nova categoria (use > para subcategoria):')||'').split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
+  if(n){if(!cats[n])cats[n]=[];save();renderCats();fillCatSelect(n)} else fillCatSelect('')} };
 $('gsave').onclick=()=>{
-  const name=$('gname').value.split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
-  if(!name){toast('Dê um nome ao agrupamento');return}
-  const {w,h,f}=dims(); groups[name]={w,h,frames:f,speed:+$('asp').value||300,slots:JSON.parse(JSON.stringify(slots))};
-  save(); render(); toast('Agrupamento salvo: '+name);
+  const nm=$('gname').value.split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
+  if(!nm){toast('Dê um nome ao monstro');return}
+  const cat=$('gcat').value==='__nova'?'':$('gcat').value, name=cat?cat+' > '+nm:nm;
+  refresh(); const d=dims(), m=missing();
+  const g={tipo:d.mon?'monstro':'item',w:d.w,h:d.h,frames:d.f,layers:d.L,speed:+$('asp').value||200,
+    dirs:JSON.parse(JSON.stringify(d.mon?dirs:[[],[],dirs[2],[]])),pronto:!m.out.length};
+  if(d.L===2) g.mask=JSON.parse(JSON.stringify(d.mon?mask:[[],[],mask[2],[]]));
+  if(d.mon) g.corpo={w:d.cw,h:d.chh,slots:JSON.parse(JSON.stringify(corpo))};
+  g.slots=g.dirs[2];
+  groups[name]=g; save(); render(); fillCatSelect(cat);
+  toast((g.pronto?'Monstro pronto salvo: ':'Rascunho salvo: ')+name);
 };
 
 /* ---------- GIF (codificador simples, sem bibliotecas) ---------- */
@@ -298,12 +388,10 @@ function gifEncode(frames,W,H,delay){
   b(0x3B); return new Uint8Array(out);
 }
 $('gif').onclick=()=>{
-  const {w,h,f}=dims(), z=+$('zoom').value, W=w*32*z, H=h*32*z;
-  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
-  const frames=[];for(let a=0;a<f;a++){drawFrame(ctx,a,z);frames.push(ctx.getImageData(0,0,W,H))}
-  try{
-    const data=gifEncode(frames,W,H,+$('asp').value||300);
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'image/gif'}));a.download=($('gname').value||'sprite').replace(/[^\w\- ]+/g,'_')+'.gif';a.click();
+  const {f}=dims(), L=layout(); const cv=document.createElement('canvas');cv.width=L.W;cv.height=L.H;const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
+  const frames=[];for(let a=0;a<f;a++){paint(ctx,a);frames.push(ctx.getImageData(0,0,L.W,L.H))}
+  try{const data=gifEncode(frames,L.W,L.H,+$('asp').value||200);
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'image/gif'}));a.download=($('gname').value||'monstro').replace(/[^\w\- ]+/g,'_')+'.gif';a.click();
   }catch(e){toast('Abra o site pelo atalho (o navegador bloqueou a leitura das imagens)')}
 };
 
