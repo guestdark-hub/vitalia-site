@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catálogo de sprites</title>
+<style>
+:root{--bg:#17181b;--panel:#202126;--ink:#ebe7dc;--muted:#a29d90;--line:#34353b;--accent:#e3a73f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px "Segoe UI",system-ui,sans-serif}
+.wrap{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+aside{border-right:1px solid var(--line);padding:14px;background:var(--panel);position:sticky;top:0;height:100vh;overflow:auto}
+main{padding:14px;min-width:0}
+h2{font:700 15px Georgia,serif;margin:14px 0 6px;color:var(--accent)}
+input,select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:5px 8px}
+input[type=number]{width:62px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.on{background:var(--accent);color:#000;border-color:var(--accent)}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.cats div{padding:4px 6px;border-radius:4px;cursor:pointer;display:flex;justify-content:space-between;gap:6px}
+.cats div:hover,.cats div.on{background:var(--bg)}
+.cats small{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:4px}
+.cell{background:#0e0f11;border:1px solid var(--line);border-radius:4px;padding:3px;text-align:center;cursor:pointer;position:relative}
+.cell:hover{border-color:var(--accent);z-index:5}
+.cell.sel{outline:2px solid var(--accent)}
+.cell .s{width:32px;height:32px;margin:6px auto;image-rendering:pixelated;transform:scale(1.4);transform-origin:center;transition:transform .12s;position:relative}
+.cell:hover .s{transform:scale(4.5);z-index:10;background-color:#0e0f11;box-shadow:0 0 0 1px var(--accent),0 4px 18px #000a}
+.cell span{display:block;font:11px Consolas,monospace;color:var(--muted)}
+.cell i{position:absolute;top:2px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.note{color:var(--muted);font-size:13px;line-height:1.5}
+#toast{position:fixed;bottom:14px;right:14px;background:var(--accent);color:#000;padding:8px 12px;border-radius:6px;display:none;z-index:50}
+/* montador */
+#asm{display:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px}
+#asm.open{display:grid;grid-template-columns:minmax(260px,1fr) minmax(220px,auto);gap:14px}
+.frames{display:flex;flex-wrap:wrap;gap:8px}
+.frame{border:1px solid var(--line);border-radius:6px;padding:5px}
+.frame b{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+.slots{display:grid;gap:2px}
+.slot{width:40px;height:40px;background:#0e0f11;border:1px dashed var(--line);cursor:pointer;image-rendering:pixelated;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
+.slot.act{border:2px solid var(--accent)}
+.slot div{width:32px;height:32px;transform:scale(1.2)}
+canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 25%,#1e1f23 0 50%) 0 0/16px 16px;border:1px solid var(--line);border-radius:4px}
+@media(max-width:800px){.wrap{grid-template-columns:1fr}aside{position:static;height:auto}#asm.open{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<aside>
+  <h2>Navegar</h2>
+  <div class="row"><button id="prev">&lt;</button><select id="page"></select><button id="next">&gt;</button></div>
+  <div class="row"><input id="goto" type="number" min="1" placeholder="ID" style="width:100px"><button id="gobtn">Ir</button></div>
+  <h2>Categorias</h2>
+  <p class="note">Selecione sprites (clique; Shift+clique pega um intervalo) e salve numa categoria. Use "&gt;" para subcategorias: <code>Monstros &gt; Dragoes</code>. Clique direito numa categoria para apagar.</p>
+  <div class="row"><input id="catname" placeholder="Monstros > Dragoes" style="flex:1"><button id="addcat">Salvar seleção</button></div>
+  <div class="row"><button id="clearsel">Limpar seleção</button><span id="selcount" class="note"></span></div>
+  <div class="cats" id="cats"></div>
+  <h2>Montador de monstros e itens</h2>
+  <p class="note">Junta os pedaços (32x32) de um monstro ou item, anima como GIF e salva o agrupamento.</p>
+  <div class="row"><button id="asmToggle">Abrir montador</button></div>
+  <h2>Compartilhar</h2>
+  <p class="note" id="savenote">Aberto pelo atalho <b>Abrir site Vitalia</b>, tudo é salvo sozinho em <code>C:\YurOTS_76\site\catalogo_sprites.json</code> (o Claude lê de lá).</p>
+  <div id="ghbox" style="display:none">
+    <p class="note">Site no GitHub: cada mudança grava <code>catalogo_sprites.json</code> no repositório (o Claude lê de lá). Cole uma vez um token do GitHub com permissão <b>Contents: read and write</b> só deste repositório; ele fica guardado apenas neste navegador.</p>
+    <div class="row"><input id="ghtok" type="password" placeholder="github_pat_..." style="flex:1"><button id="ghsave">Conectar</button></div>
+    <div class="note" id="ghstat"></div>
+  </div>
+  <div class="row"><button id="export">Exportar</button><button onclick="document.getElementById('imp').click()">Importar</button><input id="imp" type="file" accept=".json" hidden></div>
+</aside>
+<main>
+  <section id="asm">
+    <div>
+      <div class="row">
+        <label>Largura <input id="aw" type="number" min="1" max="4" value="2"></label>
+        <label>Altura <input id="ah" type="number" min="1" max="4" value="2"></label>
+        <label>Quadros <input id="af" type="number" min="1" max="12" value="2"></label>
+        <label>Velocidade <input id="asp" type="number" min="50" max="2000" step="50" value="300"> ms</label>
+      </div>
+      <div class="row note">Clique num quadrado abaixo e depois numa sprite da lista (o quadrado seguinte é escolhido sozinho). Ou preencha tudo de uma vez:</div>
+      <div class="row">
+        <label>1ª sprite <input id="fid" type="number" min="1" style="width:90px"></label>
+        <label title="Monstros: 4. Itens e efeitos (ex.: teleport): 1">Direções (item = 1) <input id="fdir" type="number" min="1" max="8" value="4"></label>
+        <label>Camadas <input id="flay" type="number" min="1" max="2" value="1"></label>
+        <label>Direção <select id="fd"><option value="0">norte</option><option value="1">leste</option><option value="2" selected>sul</option><option value="3">oeste</option></select></label>
+        <button id="fill">Preencher na ordem do Tibia</button>
+      </div>
+      <div class="frames" id="frames"></div>
+      <div class="row" style="margin-top:10px">
+        <input id="gname" placeholder="Monstros > Dragoes > Dragao (sul)" style="flex:1;min-width:200px">
+        <button id="gsave">Salvar agrupamento</button><button id="gclear">Limpar</button>
+      </div>
+    </div>
+    <div>
+      <div class="row"><b>Prévia</b><label>Zoom <select id="zoom"><option>2</option><option selected>3</option><option>4</option></select></label></div>
+      <canvas id="cv" width="192" height="192"></canvas>
+      <div class="row" style="margin-top:8px"><button id="gif">Baixar GIF</button><button id="play">Pausar</button></div>
+    </div>
+  </section>
+  <div class="row"><b id="title"></b><span class="note" id="info"></span></div>
+  <div class="grid" id="grid"></div>
+</main>
+</div>
+<div id="toast"></div>
+<script>
+const N=39252, PER=400, COLS=20, PAGES=Math.ceil(N/PER);
+const $=id=>document.getElementById(id);
+let cats={}, groups={};
+try{cats=JSON.parse(localStorage.getItem('vit-cats')||'{}')}catch(e){}
+try{groups=JSON.parse(localStorage.getItem('vit-groups')||'{}')}catch(e){}
+let sel=new Set(), lastClick=null, page=0, filter=null;
+const HTTP=location.protocol.startsWith('http');
+/* GitHub Pages: salva catalogo_sprites.json no proprio repositorio pela API (token fica so neste navegador) */
+const GH=location.hostname.endsWith('github.io')?{owner:location.hostname.split('.')[0],repo:location.pathname.split('/')[1]||location.hostname,file:'catalogo_sprites.json'}:null;
+let ghToken='', ghSha=null, ghTimer=null;
+try{ghToken=localStorage.getItem('vit-gh-token')||''}catch(e){}
+const ghUrl=()=>`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.file}`;
+const b64=s=>{const u=new TextEncoder().encode(s);let b='';for(let i=0;i<u.length;i+=8192)b+=String.fromCharCode(...u.subarray(i,i+8192));return btoa(b)};
+async function ghLoad(){
+  const h={Accept:'application/vnd.github+json'}; if(ghToken) h.Authorization='Bearer '+ghToken;
+  const r=await fetch(ghUrl()+'?t='+Date.now(),{headers:h,cache:'no-store'}); if(!r.ok) return null;
+  const j=await r.json(); ghSha=j.sha;
+  return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')),c=>c.charCodeAt(0))));
+}
+async function ghSave(){
+  if(!ghToken){ghStatus('Sem token: salvo só neste navegador');return}
+  const body=JSON.stringify({categorias:cats,agrupamentos:groups},null,1);
+  for(let tent=0;tent<2;tent++){
+    const r=await fetch(ghUrl(),{method:'PUT',headers:{Authorization:'Bearer '+ghToken,Accept:'application/vnd.github+json'},
+      body:JSON.stringify({message:'catalogo: atualizado pelo site',content:b64(body),sha:ghSha||undefined})});
+    if(r.ok){ghSha=(await r.json()).content.sha;ghStatus('Salvo no GitHub '+new Date().toLocaleTimeString());return}
+    if(r.status===409||r.status===422){try{const j=await ghLoad(); if(j){merge(j);render()}}catch(e){} continue}
+    ghStatus(r.status===401||r.status===403?'Token recusado pelo GitHub':'Erro ao salvar ('+r.status+')');return
+  }
+}
+function ghStatus(t){const e=$('ghstat'); if(e) e.textContent=t}
+function save(){try{localStorage.setItem('vit-cats',JSON.stringify(cats));localStorage.setItem('vit-groups',JSON.stringify(groups))}catch(e){}
+  if(GH){clearTimeout(ghTimer);ghStatus('Salvando...');ghTimer=setTimeout(ghSave,1200);return}
+  if(HTTP) fetch('salvar',{method:'POST',body:JSON.stringify({categorias:cats,agrupamentos:groups},null,1)}).catch(()=>{})}
+function merge(j){const c=j.categorias||j, g=j.agrupamentos||{};let n=0;
+  for(const k in c) if(Array.isArray(c[k])){const before=(cats[k]||[]).length;cats[k]=[...new Set([...(cats[k]||[]),...c[k]])];n+=cats[k].length-before}
+  for(const k in g) if(!groups[k]){groups[k]=g[k];n++} return n}
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',1500)}
+function sheetPos(id){const s=Math.floor((id-1)/PER),k=(id-1)%PER;return {url:`sheets/s${String(s).padStart(3,'0')}.png`,x:(k%COLS)*32,y:Math.floor(k/COLS)*32}}
+function bg(el,id){const p=sheetPos(id);el.style.background=`url(${p.url}) -${p.x}px -${p.y}px`}
+function catOf(id){for(const k in cats) if(cats[k].includes(id)) return k; return null}
+
+/* ---------- lista de sprites ---------- */
+function cell(id){
+  const d=document.createElement('div'); d.className='cell'+(sel.has(id)?' sel':'');
+  const im=document.createElement('div'); im.className='s'; bg(im,id); d.append(im);
+  const sp=document.createElement('span'); sp.textContent=id; d.append(sp);
+  const c=catOf(id); if(c){const i=document.createElement('i');i.title=c;d.append(i);d.title=c}
+  d.onclick=ev=>{
+    if(asmOpen && act){ setSlot(act.f,act.r,act.c,id); return }
+    if(ev.shiftKey&&lastClick){const a=Math.min(lastClick,id),b=Math.max(lastClick,id);for(let x=a;x<=b;x++)sel.add(x)}
+    else{ if(sel.has(id))sel.delete(id); else sel.add(id); try{navigator.clipboard.writeText('sprite #'+id)}catch(e){} toast('sprite #'+id+' copiado')}
+    lastClick=id; render();
+  };
+  return d;
+}
+function render(){
+  const g=$('grid'); g.replaceChildren();
+  if(filter){
+    const ids=(cats[filter]||[]).slice().sort((a,b)=>a-b);
+    $('title').textContent=filter; $('info').textContent=ids.length+' sprites';
+    ids.forEach(id=>g.append(cell(id)));
+  } else {
+    const a=page*PER+1,b=Math.min(N,(page+1)*PER);
+    $('title').textContent=`Sprites ${a} a ${b}`; $('info').textContent=`página ${page+1} de ${PAGES}`;
+    for(let id=a;id<=b;id++) g.append(cell(id));
+  }
+  $('page').value=page; $('selcount').textContent=sel.size?sel.size+' selecionada(s)':'';
+  renderCats();
+}
+function renderCats(){
+  const box=$('cats'); box.replaceChildren();
+  const all=document.createElement('div'); all.innerHTML='<span>Todas as sprites</span>'; all.className=filter?'':'on'; all.onclick=()=>{filter=null;render()}; box.append(all);
+  const keys=[...new Set([...Object.keys(cats),...Object.keys(groups)])].sort();
+  keys.forEach(k=>{
+    const depth=k.split('>').length-1, label=k.split('>').pop().trim();
+    if(cats[k]){
+      const d=document.createElement('div'); d.className=filter===k?'on':'';
+      d.innerHTML=`<span style="padding-left:${depth*12}px">${label}</span><small>${cats[k].length}</small>`;
+      d.title=k; d.onclick=()=>{filter=k;render()};
+      d.oncontextmenu=ev=>{ev.preventDefault(); if(confirm('Apagar a categoria "'+k+'"?')){delete cats[k];save();if(filter===k)filter=null;render()}};
+      box.append(d);
+    }
+    if(groups[k]){
+      const d=document.createElement('div');
+      d.innerHTML=`<span style="padding-left:${depth*12}px">&#9654; ${label}</span><small>agrup.</small>`;
+      d.title='Agrupamento: '+k+' (clique para abrir no montador)'; d.onclick=()=>loadGroup(k);
+      d.oncontextmenu=ev=>{ev.preventDefault(); if(confirm('Apagar o agrupamento "'+k+'"?')){delete groups[k];save();render()}};
+      box.append(d);
+    }
+  });
+}
+
+/* ---------- montador ---------- */
+let asmOpen=false, act=null, slots=[], playing=true, fr=0, timer=null;
+const imgs={};
+function img(id){const p=sheetPos(id); if(!imgs[p.url]){const i=new Image();i.src=p.url;i.onload=draw;imgs[p.url]=i} return {im:imgs[p.url],x:p.x,y:p.y}}
+function dims(){return {w:+$('aw').value||1,h:+$('ah').value||1,f:+$('af').value||1}}
+function resize(){
+  const {w,h,f}=dims();
+  const old=slots; slots=[];
+  for(let a=0;a<f;a++){slots.push([]);for(let r=0;r<h;r++){slots[a].push([]);for(let c=0;c<w;c++) slots[a][r].push(((old[a]||[])[r]||[])[c]||0)}}
+  buildFrames(); draw();
+}
+function buildFrames(){
+  const {w,h,f}=dims(), box=$('frames'); box.replaceChildren();
+  for(let a=0;a<f;a++){
+    const fd=document.createElement('div'); fd.className='frame'; fd.innerHTML=`<b>Quadro ${a+1}</b>`;
+    const g=document.createElement('div'); g.className='slots'; g.style.gridTemplateColumns=`repeat(${w},40px)`;
+    for(let r=0;r<h;r++) for(let c=0;c<w;c++){
+      const s=document.createElement('div'); s.className='slot'+(act&&act.f===a&&act.r===r&&act.c===c?' act':'');
+      const id=slots[a][r][c];
+      if(id){const i=document.createElement('div');bg(i,id);s.append(i);s.title='sprite #'+id} else s.textContent='+';
+      s.onclick=()=>{act={f:a,r,c};buildFrames()};
+      s.oncontextmenu=ev=>{ev.preventDefault();slots[a][r][c]=0;buildFrames();draw()};
+      g.append(s);
+    }
+    fd.append(g); box.append(fd);
+  }
+}
+function setSlot(a,r,c,id){
+  slots[a][r][c]=id;
+  const {w,h,f}=dims(); let n=(a*h+r)*w+c+1;
+  if(n<f*h*w){act={f:Math.floor(n/(h*w)),r:Math.floor((n%(h*w))/w),c:n%w}}
+  buildFrames(); draw();
+}
+function fillTibia(){
+  const {w,h,f}=dims(), start=+$('fid').value, D=+$('fdir').value||1, L=+$('flay').value||1, d=+$('fd').value%D;
+  if(!start){toast('Informe a 1a sprite');return}
+  for(let a=0;a<f;a++){
+    const base=start+((a*D+d)*L)*w*h;
+    for(let hh=0;hh<h;hh++) for(let ww=0;ww<w;ww++) slots[a][h-1-hh][w-1-ww]=base+hh*w+ww;
+  }
+  buildFrames(); draw();
+}
+function drawFrame(ctx,a,z){
+  const {w,h}=dims(); ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+  for(let r=0;r<h;r++) for(let c=0;c<w;c++){
+    const id=(slots[a]||[])[r]?.[c]; if(!id) continue;
+    const s=img(id); if(s.im.complete) ctx.drawImage(s.im,s.x,s.y,32,32,c*32*z,r*32*z,32*z,32*z);
+  }
+}
+function draw(){
+  const {w,h,f}=dims(), z=+$('zoom').value, cv=$('cv');
+  cv.width=w*32*z; cv.height=h*32*z; const ctx=cv.getContext('2d'); ctx.imageSmoothingEnabled=false;
+  drawFrame(ctx,fr%f,z);
+}
+function tick(){ if(playing){fr=(fr+1)%dims().f; draw()} timer=setTimeout(tick,+$('asp').value||300) }
+function loadGroup(k){
+  const g=groups[k]; $('aw').value=g.w; $('ah').value=g.h; $('af').value=g.frames; $('asp').value=g.speed||300;
+  slots=g.slots; $('gname').value=k; if(!asmOpen) toggleAsm(); buildFrames(); draw();
+}
+function toggleAsm(){asmOpen=!asmOpen; $('asm').classList.toggle('open',asmOpen); $('asmToggle').textContent=asmOpen?'Fechar montador':'Abrir montador'; $('asmToggle').classList.toggle('on',asmOpen); if(asmOpen&&!slots.length) resize()}
+$('asmToggle').onclick=toggleAsm;
+['aw','ah','af'].forEach(i=>$(i).onchange=resize);
+$('zoom').onchange=draw;
+$('fill').onclick=fillTibia;
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pausar':'Animar'};
+$('gclear').onclick=()=>{slots=[];resize()};
+$('gsave').onclick=()=>{
+  const name=$('gname').value.split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
+  if(!name){toast('Dê um nome ao agrupamento');return}
+  const {w,h,f}=dims(); groups[name]={w,h,frames:f,speed:+$('asp').value||300,slots:JSON.parse(JSON.stringify(slots))};
+  save(); render(); toast('Agrupamento salvo: '+name);
+};
+
+/* ---------- GIF (codificador simples, sem bibliotecas) ---------- */
+function gifEncode(frames,W,H,delay){
+  // frames: array de ImageData. Paleta global com transparencia no indice 0.
+  const map=new Map(), pal=[[0,0,0]];
+  const q=(r,g,b)=>((r>>3)<<10)|((g>>3)<<5)|(b>>3);
+  const idx=frames.map(fd=>{const a=new Uint8Array(W*H);for(let p=0;p<W*H;p++){const o=p*4;if(fd.data[o+3]<128){a[p]=0;continue}
+    let key=q(fd.data[o],fd.data[o+1],fd.data[o+2]);let k=map.get(key);if(k===undefined){if(pal.length<256){k=pal.length;pal.push([fd.data[o],fd.data[o+1],fd.data[o+2]]);map.set(key,k)}else{let best=1,bd=1e9;for(let i=1;i<pal.length;i++){const d=(pal[i][0]-fd.data[o])**2+(pal[i][1]-fd.data[o+1])**2+(pal[i][2]-fd.data[o+2])**2;if(d<bd){bd=d;best=i}}k=best}}a[p]=k}return a});
+  while(pal.length<256) pal.push([0,0,0]);
+  const out=[];const b=(...x)=>out.push(...x);const w16=v=>b(v&255,v>>8);
+  'GIF89a'.split('').forEach(c=>b(c.charCodeAt(0))); w16(W);w16(H); b(0xF7,0,0);
+  pal.forEach(c=>b(c[0],c[1],c[2]));
+  b(0x21,0xFF,11);'NETSCAPE2.0'.split('').forEach(c=>b(c.charCodeAt(0)));b(3,1,0,0,0);
+  for(const a of idx){
+    b(0x21,0xF9,4,0x09);w16(Math.round(delay/10));b(0,0);
+    b(0x2C);w16(0);w16(0);w16(W);w16(H);b(0);
+    const minCode=8;b(minCode);
+    // LZW
+    const clear=256,eoi=257;let dict=new Map(),next=258,size=9,cur=-1,bits=0,acc=0;const bytes=[];
+    const emit=c=>{acc|=c<<bits;bits+=size;while(bits>=8){bytes.push(acc&255);acc>>=8;bits-=8}};
+    emit(clear);
+    for(let i=0;i<a.length;i++){const k=a[i];if(cur<0){cur=k;continue}const key=cur*256+k;const v=dict.get(key);
+      if(v!==undefined){cur=v}else{emit(cur);if(next<4096){dict.set(key,next++);if(next>(1<<size)&&size<12)size++}else{emit(clear);dict=new Map();next=258;size=9}cur=k}}
+    emit(cur);emit(eoi);if(bits>0)bytes.push(acc&255);
+    for(let i=0;i<bytes.length;i+=255){const ch=bytes.slice(i,i+255);b(ch.length,...ch)}
+    b(0);
+  }
+  b(0x3B); return new Uint8Array(out);
+}
+$('gif').onclick=()=>{
+  const {w,h,f}=dims(), z=+$('zoom').value, W=w*32*z, H=h*32*z;
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
+  const frames=[];for(let a=0;a<f;a++){drawFrame(ctx,a,z);frames.push(ctx.getImageData(0,0,W,H))}
+  try{
+    const data=gifEncode(frames,W,H,+$('asp').value||300);
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'image/gif'}));a.download=($('gname').value||'sprite').replace(/[^\w\- ]+/g,'_')+'.gif';a.click();
+  }catch(e){toast('Abra o site pelo atalho (o navegador bloqueou a leitura das imagens)')}
+};
+
+/* ---------- navegacao, categorias e exportacao ---------- */
+for(let p=0;p<PAGES;p++){const o=document.createElement('option');o.value=p;o.textContent=`${p*PER+1}-${Math.min(N,(p+1)*PER)}`;$('page').append(o)}
+$('page').onchange=e=>{page=+e.target.value;filter=null;render();scrollTo(0,0)};
+$('prev').onclick=()=>{if(page>0){page--;filter=null;render();scrollTo(0,0)}};
+$('next').onclick=()=>{if(page<PAGES-1){page++;filter=null;render();scrollTo(0,0)}};
+$('gobtn').onclick=()=>{const id=+$('goto').value;if(id>=1&&id<=N){page=Math.floor((id-1)/PER);filter=null;sel.add(id);render()}};
+$('addcat').onclick=()=>{
+  const name=$('catname').value.split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
+  if(!name||!sel.size){toast('Escolha um nome e selecione sprites');return}
+  for(const k in cats) cats[k]=cats[k].filter(x=>!sel.has(x));
+  cats[name]=[...new Set([...(cats[name]||[]),...sel])]; sel.clear(); save(); render(); toast('Salvo em '+name);
+};
+$('clearsel').onclick=()=>{sel.clear();render()};
+$('export').onclick=()=>{const b=new Blob([JSON.stringify({categorias:cats,agrupamentos:groups},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='catalogo_sprites.json';a.click()};
+$('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const j=JSON.parse(t);const c=j.categorias||j, g=j.agrupamentos||{};
+  for(const k in c) if(Array.isArray(c[k])) cats[k]=[...new Set([...(cats[k]||[]),...c[k]])]; Object.assign(groups,g); save();render();toast('Importado')}catch(x){toast('Arquivo inválido')}})};
+render(); tick();
+if(GH){
+  $('savenote').style.display='none'; $('ghbox').style.display='block';
+  ghStatus(ghToken?'Conectado ao GitHub':'Sem token: salvo só neste navegador');
+  $('ghsave').onclick=()=>{ghToken=$('ghtok').value.trim();try{localStorage.setItem('vit-gh-token',ghToken)}catch(e){};$('ghtok').value='';ghStatus(ghToken?'Token guardado. Salvando...':'Token removido');if(ghToken)ghSave()};
+  ghLoad().then(j=>{if(j&&merge(j)){try{localStorage.setItem('vit-cats',JSON.stringify(cats));localStorage.setItem('vit-groups',JSON.stringify(groups))}catch(e){};render()}}).catch(()=>{});
+}
+else if(HTTP) fetch('catalogo_sprites.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&merge(j)){save();render()}}).catch(()=>{});
+</script>
+<script src="catalogo_base.js" onload="if(window.CAT_BASE){let n=0;const c=CAT_BASE.categorias||CAT_BASE, g=CAT_BASE.agrupamentos||{};for(const k in c){if(Array.isArray(c[k])&&!cats[k]){cats[k]=c[k];n++}}for(const k in g){if(!groups[k]){groups[k]=g[k];n++}}if(n){save();render()}}"></script>
+</body>
+</html>

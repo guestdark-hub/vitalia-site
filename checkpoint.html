@@ -1,0 +1,587 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Vitalia Checkpoint</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: ficha de campanha. Cabecalho com progresso, navegacao fixa por secao, fases como listas de missoes com status. */
+:root {
+  --bg: #f3f1ea;
+  --panel: #fbfaf6;
+  --ink: #23211c;
+  --muted: #6c675c;
+  --line: #d9d4c7;
+  --accent: #9a6512;
+  --accent-soft: #f1e2c3;
+  --ok: #2f7d3b; --ok-bg: #dcefdc;
+  --warn: #9a6a00; --warn-bg: #f6e8bf;
+  --bad: #a3322a; --bad-bg: #f5d9d5;
+  --info: #2c5f9e; --info-bg: #dbe6f4;
+  --t1: #8a8a8a; --t2: #2fa63a; --t3: #2f72d6; --t4: #8e44d4; --t5: #e07b00;
+  --display: "Alegreya SC", Georgia, serif;
+  --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #17181b; --panel: #202126; --ink: #ebe7dc; --muted: #a29d90; --line: #34353b;
+  --accent: #e3a73f; --accent-soft: #3a2f1c;
+  --ok: #7fd08a; --ok-bg: #1f3423; --warn: #e9c15a; --warn-bg: #3a3119; --bad: #f08a80; --bad-bg: #40211e; --info: #8db8f2; --info-bg: #1d2a3d;
+  --t1: #c9c9c9; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #17181b; --panel: #202126; --ink: #ebe7dc; --muted: #a29d90; --line: #34353b;
+  --accent: #e3a73f; --accent-soft: #3a2f1c;
+  --ok: #7fd08a; --ok-bg: #1f3423; --warn: #e9c15a; --warn-bg: #3a3119; --bad: #f08a80; --bad-bg: #40211e; --info: #8db8f2; --info-bg: #1d2a3d;
+  --t1: #c9c9c9; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1060px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.05; }
+h2 { font-size: 26px; }
+h3 { font-size: 19px; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.muted { color: var(--muted); }
+a { color: var(--accent); }
+
+header.top { display: grid; gap: 14px; padding-bottom: 22px; border-bottom: 2px solid var(--ink); }
+.lede { font-size: 18px; color: var(--muted); }
+.meter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 6px; }
+.meter { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; gap: 6px; min-width: 0; }
+.meter b { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.meter span { font-size: 13px; color: var(--muted); }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .4s; }
+.sync { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+nav.toc { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); margin: 0 0 8px; padding: 10px 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+nav.toc a { font-family: var(--mono); font-size: 12.5px; text-decoration: none; color: var(--muted); padding: 2px 0; border-bottom: 2px solid transparent; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--ink); border-bottom-color: var(--accent); outline: none; }
+
+section { padding-top: 34px; display: grid; gap: 14px; scroll-margin-top: 56px; }
+.intro { display: grid; gap: 8px; }
+
+/* tarefas */
+.phase { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.phase-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.phase-head .count { font-family: var(--mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.phase-head p { flex-basis: 100%; color: var(--muted); font-size: 15px; }
+.task { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; padding: 12px 16px; border-top: 1px solid var(--line); align-items: start; }
+.task:first-of-type { border-top: 0; }
+.task .what { min-width: 0; display: grid; gap: 3px; }
+.task .what strong { font-weight: 700; }
+.task .what small { color: var(--muted); font-size: 14.5px; }
+.task[data-status="done"] .what strong { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+.task .ctrl { display: flex; gap: 6px; align-items: center; }
+select.status { font: 600 12.5px var(--mono); border-radius: 999px; border: 1px solid var(--line); padding: 4px 10px; background: var(--panel); color: var(--ink); cursor: pointer; }
+select.status:focus-visible, button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+select.status[data-s="done"] { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+select.status[data-s="doing"] { background: var(--info-bg); color: var(--info); border-color: transparent; }
+select.status[data-s="blocked"] { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+button.note-btn { font: 12px var(--mono); background: none; border: 1px solid var(--line); border-radius: 4px; padding: 3px 7px; color: var(--muted); cursor: pointer; }
+button.note-btn.has { color: var(--accent); border-color: var(--accent); }
+.note { grid-column: 1 / -1; display: grid; gap: 6px; }
+.note textarea { width: 100%; box-sizing: border-box; min-height: 64px; font: 14.5px var(--body); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 8px; resize: vertical; }
+.note .row { display: flex; gap: 8px; justify-content: flex-end; }
+.note .row button { font: 600 13px var(--body); border-radius: 4px; padding: 5px 12px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+.note .row button.save { background: var(--accent); color: var(--panel); border-color: var(--accent); }
+.tag { font: 600 11px var(--mono); letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+.tag.crit { background: var(--bad-bg); color: var(--bad); }
+.tag.high { background: var(--warn-bg); color: var(--warn); }
+.tag.med { background: var(--info-bg); color: var(--info); }
+.tag.ok { background: var(--ok-bg); color: var(--ok); }
+
+/* blocos de conteudo */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.card ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.callout { border-left: 4px solid var(--bad); background: var(--bad-bg); padding: 12px 14px; border-radius: 0 6px 6px 0; display: grid; gap: 6px; }
+.callout.gold { border-left-color: var(--accent); background: var(--accent-soft); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.tier { font-weight: 700; }
+.tier.t1 { color: var(--t1); } .tier.t2 { color: var(--t2); } .tier.t3 { color: var(--t3); } .tier.t4 { color: var(--t4); } .tier.t5 { color: var(--t5); }
+.loop { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-family: var(--mono); font-size: 13px; }
+.loop span { background: var(--panel); border: 1px solid var(--line); padding: 4px 8px; border-radius: 4px; }
+.loop em { color: var(--accent); font-style: normal; }
+footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); display: grid; gap: 4px; }
+@media (max-width: 560px) { .task { grid-template-columns: 1fr; } .task .ctrl { justify-content: flex-start; } }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">YurOTS 7.6 · Vitalia · checkpoint do projeto</span>
+    <h1>Vitalia Checkpoint</h1>
+    <p class="lede">O mapa do que já está pronto, do que falta para abrir o servidor ao público e de como ele vai se pagar. Marque o status de cada item aqui; ele fica salvo e eu leio quando a gente voltar a trabalhar.</p>
+    <div class="meter-row" id="meters" aria-label="Progresso por fase"></div>
+    <span class="sync" id="sync">Carregando status salvos…</span>
+  </header>
+
+  <nav class="toc" aria-label="Seções">
+    <a href="#feito">Já feito</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="#seguranca">Segurança</a>
+    <a href="#economia">Economia e refino</a>
+    <a href="#monetizacao">Monetização</a>
+    <a href="#site">Site</a>
+    <a href="#operacao">Operação</a>
+    <a href="#hospedagem">Hospedagem</a>
+    <a href="#projecoes">Projeções</a>
+    <a href="#decisoes">Decisões</a>
+  </nav>
+
+  <section id="feito">
+    <div class="intro">
+      <span class="eyebrow">Base atual</span>
+      <h2>Já feito</h2>
+      <p class="muted">Tudo o que construímos até 22/10/2026. Se algo quebrar, mude para "Bloqueado" e deixe uma nota.</p>
+    </div>
+    <div id="phase-done"></div>
+  </section>
+
+  <section id="roadmap">
+    <div class="intro">
+      <span class="eyebrow">Ordem sugerida</span>
+      <h2>Roadmap até a abertura</h2>
+      <p class="muted">As fases seguem a ordem em que dependem uma da outra: segurança e dados primeiro, porque a loja e o site precisam de um banco confiável; depois a economia, para os itens pagos não quebrarem o jogo; por último conteúdo e lançamento.</p>
+    </div>
+    <div id="phases" style="display:grid;gap:14px"></div>
+  </section>
+
+  <section id="seguranca">
+    <div class="intro">
+      <span class="eyebrow">Revisão de código · 20/10/2026</span>
+      <h2>Segurança</h2>
+      <p>Estes pontos saíram da leitura do código do servidor e da configuração atual. Para teste local está tudo bem; os críticos precisam estar resolvidos antes de qualquer pessoa de fora conectar. Cada um também aparece como tarefa na Fase 0.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Nível</th><th>O que encontrei</th><th>Correção</th></tr></thead>
+      <tbody id="sec-rows"></tbody>
+    </table></div>
+  </section>
+
+  <section id="economia">
+    <div class="intro">
+      <span class="eyebrow">Equilíbrio</span>
+      <h2>Economia e refino</h2>
+      <p>Hoje a raridade cai fácil demais para um servidor que vai vender progresso: cerca de 25% dos equipamentos que caem de monstros vêm com raridade, e gemas caem com chance proporcional à XP do monstro. Para a loja ter valor, o drop natural precisa ser raro, mas nunca zero, para quem não paga continuar tendo motivo para caçar.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Tier</th><th>Drop em equipamento hoje</th><th>Proposta</th><th>Onde aparece</th></tr></thead>
+      <tbody>
+        <tr><td class="tier t1">Common</td><td class="num">15%</td><td class="num">3,5%</td><td>Qualquer hunt</td></tr>
+        <tr><td class="tier t2">Uncommon</td><td class="num">6,5%</td><td class="num">1,0%</td><td>Qualquer hunt</td></tr>
+        <tr><td class="tier t3">Rare</td><td class="num">2,5%</td><td class="num">0,35%</td><td>Monstros acima de 500 XP</td></tr>
+        <tr><td class="tier t4">Elite</td><td class="num">0,8%</td><td class="num">0,12%</td><td>Monstros acima de 1.500 XP e bosses</td></tr>
+        <tr><td class="tier t5">Legendary</td><td class="num">0,2%</td><td class="num">0,03%</td><td>Só bosses e eventos</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted">Gemas: hoje a chance por kill é XP do monstro × 2 por 100.000 (um Dragon dá 1,4%). Proposta: × 0,5 (Dragon 0,35%), com gemas Elite e Legendary saindo só de bosses, tasks finais e eventos. Tudo isso já é ajustável no <code>config.lua</code> (<code>gemdropmul</code>) e em <code>itemattrs.cpp</code>.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3>Ciclo de progressão</h3>
+        <div class="loop"><span>Caçar</span><em>→</em><span>Tasks</span><em>→</em><span>Gemas e gold</span><em>→</em><span>Refino</span><em>→</em><span>Hunts mais fortes</span><em>→</em><span>Bosses</span></div>
+        <p>A Task Master entrega gemas nas tasks finais de cada faixa. Bosses semanais garantem pelo menos uma gema Rare. Assim o jogador gratuito chega a Elite em semanas, e quem paga chega mais rápido, sem ter acesso a algo que o outro nunca vai ter.</p>
+      </div>
+      <div class="card">
+        <h3>Para onde vai o gold (sinks)</h3>
+        <ul>
+          <li>Taxa de gold em cada refino, crescendo com o tier.</li>
+          <li>Combinar gemas (já existe: 5k a 150k).</li>
+          <li>"Travar um atributo" ao refinar, mantendo o melhor e sorteando o resto.</li>
+          <li>Aluguel semanal das casas (hoje a compra é única).</li>
+          <li>Reparar ou "proteger" item raro contra perda na morte.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="monetizacao">
+    <div class="intro">
+      <span class="eyebrow">Como se paga</span>
+      <h2>Monetização</h2>
+      <p>O modelo que mais funciona em servidores OT é uma moeda paga (coins) comprada no site, gasta numa loja dentro do jogo e no site. VIP, cosméticos e conveniência sustentam o servidor; poder exclusivo que só se compra com dinheiro afasta os jogadores gratuitos, e são eles que fazem o mundo parecer cheio.</p>
+    </div>
+    <div class="callout">
+      <strong>Caixas e roletas pagas: atenção à lei</strong>
+      <p>Desde 17/03/2026 está em vigor no Brasil a Lei 15.211/2025 (ECA Digital), que proíbe loot boxes para menores de 18 anos, com multa de até 10% do faturamento no Brasil. Uma caixa ou roleta comprada com dinheiro ou coins, com prêmio aleatório, entra nisso. Usar uma gema comprada no refino também é um sorteio pago.</p>
+      <p>Caminhos possíveis: caixas com conteúdo fixo e mostrado antes da compra; caixas aleatórias que só se ganham jogando, nunca comprando; ou servidor 18+ com verificação de idade. Não sou advogado. Antes de abrir a loja, valide com um.</p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Vitalia Coins</h3>
+        <ul>
+          <li>Compradas no site via PIX ou cartão (Mercado Pago, por exemplo), com entrega automática.</li>
+          <li>Pacotes com bônus progressivo (ex.: 100 / 525 / 1.100 coins).</li>
+          <li>Coins transferíveis só dentro da mesma conta, para não virar mercado paralelo.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>VIP (30 dias)</h3>
+        <ul>
+          <li>+10% de Experience Boost (empilha com itens, até um teto).</li>
+          <li>Acesso a 1 hunt e 1 casa exclusivas, sem itens melhores lá dentro.</li>
+          <li>Desconto no combinar gemas e na taxa de refino.</li>
+          <li>Moldura e cor de nome no site.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Loja (direta, sem sorteio)</h3>
+        <ul>
+          <li>Gemas Common e Uncommon com limite semanal; Rare+ nunca à venda.</li>
+          <li>Pergaminho "travar atributo" e "proteção contra perda".</li>
+          <li>Cosméticos: outfits e cores exclusivas, montaria visual se o cliente suportar.</li>
+          <li>Serviços: troca de nome, troca de sexo, mudança de mundo.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Passe de temporada</h3>
+        <ul>
+          <li>Trilha gratuita e trilha paga, liberadas pelas tasks e bosses.</li>
+          <li>Recompensas conhecidas de antemão, o que evita o problema da lei de loot boxes.</li>
+          <li>Temporadas de 6 a 8 semanas, com evento de lançamento.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="site">
+    <div class="intro">
+      <span class="eyebrow">Fase 3</span>
+      <h2>Site</h2>
+      <p>Os sites de OT mais usados (MyAAC, Gesior) leem os dados de um banco MySQL. O YurOTS guarda contas e personagens em arquivos XML, então a decisão principal é: migrar o servidor para MySQL antes do site, ou fazer um site que leia os XML. A migração é mais trabalho agora, mas é o que permite loja, ranking e entrega de coins com segurança.</p>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Páginas</h3><ul><li>Criar conta (com e-mail e captcha) e recuperar senha.</li><li>Download do cliente OTCv8 já configurado.</li><li>Highscores, mortes recentes, quem está online.</li><li>Casas à venda e seus donos.</li><li>Wiki: tasks, raridade, gemas, hunts.</li></ul></div>
+      <div class="card"><h3>Painel do jogador</h3><ul><li>Personagens, VIP restante, saldo de coins.</li><li>Histórico de compras (recibo de cada transação).</li><li>Segurança: 2FA, sessões, troca de senha.</li></ul></div>
+      <div class="card"><h3>Painel do admin</h3><ul><li>Vendas, coins emitidas, estornos.</li><li>Log de comandos de GM.</li><li>Banimentos e denúncias.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="operacao">
+    <div class="intro">
+      <span class="eyebrow">Depois de abrir</span>
+      <h2>Operação e cuidados de servidor</h2>
+      <p>Abrir é o começo. A maioria dos OTs morre por queda sem aviso, clone de item, rollback mal comunicado ou staff abusando. As tarefas da Fase 5 no Roadmap cobrem isso; aqui está a rotina resumida.</p>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Todo dia</h3><ul><li>Servidor e site no ar (alerta automático).</li><li>Backup da noite concluído e enviado para fora.</li><li>Olhar log de GM, compras e erros.</li><li>Responder tickets e denúncias.</li></ul></div>
+      <div class="card"><h3>Toda semana</h3><ul><li>Varredura de itens duplicados (serial).</li><li>Gold total em circulação: subiu demais? Ajustar sinks.</li><li>Top 20 em XP: algum padrão de bot?</li><li>Atualizar sistema (apt upgrade) na janela de manutenção.</li></ul></div>
+      <div class="card"><h3>Todo mês</h3><ul><li>Restaurar um backup numa máquina limpa.</li><li>Revisar quem da equipe tem acesso; trocar senhas sensíveis.</li><li>Relatório: receita, custos, online médio, retenção.</li><li>Changelog público e evento novo.</li></ul></div>
+      <div class="card"><h3>Sinais de alerta</h3><ul><li>Item Legendary aparecendo mais que o drop permite.</li><li>Gold de um jogador subindo sem caçar.</li><li>Muitas contas novas do mesmo IP.</li><li>RAM do processo só crescendo (vazamento).</li><li>Estornos acima de 1% das vendas.</li></ul></div>
+    </div>
+    <div class="callout gold">
+      <strong>Regra de ouro do rollback</strong>
+      <p>Se precisar voltar um backup, avise o horário exato, devolva coins compradas nesse intervalo e dê uma compensação pequena (XP boost, por exemplo). Rollback escondido é o que mais derruba a confiança num OT.</p>
+    </div>
+  </section>
+
+  <section id="hospedagem">
+    <div class="intro">
+      <span class="eyebrow">Onde o servidor vai rodar</span>
+      <h2>Hospedagem: cenários e cuidados</h2>
+      <p>O YurOTS 7.6 é leve: 100 jogadores rodam bem com 2 núcleos e 2 a 4 GB de RAM. O que encarece é a proteção contra DDoS e a localização (ping baixo para o Brasil). Valores aproximados de outubro/2026, conferir na hora de contratar.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Cenário</th><th>Quando usar</th><th>Máquina</th><th>Custo/mês</th><th>Riscos</th></tr></thead>
+      <tbody>
+        <tr><td><b>A · PC em casa</b></td><td>Só teste e beta fechado com amigos</td><td>Seu PC/notebook, porta aberta no roteador</td><td class="num">R$ 0–30 (luz)</td><td>Expõe o IP da sua casa; um DDoS derruba sua internet. Queda de luz/internet derruba o jogo. Nunca para abertura pública.</td></tr>
+        <tr><td><b>B · VPS com anti-DDoS</b> (recomendado)</td><td>Lançamento e até ~150 online</td><td>2–4 vCPU, 4–8 GB RAM, SSD NVMe, datacenter em SP ou Miami/EUA leste</td><td class="num">R$ 120–300</td><td>Anti-DDoS de VPS barata às vezes só filtra UDP/HTTP; confirmar que protege TCP de jogo. Recursos compartilhados.</td></tr>
+        <tr><td><b>C · Dedicado + proxy de jogo</b></td><td>150+ online ou ataques frequentes</td><td>Servidor dedicado (OVH Game, por ex.) + proxy anti-DDoS na frente</td><td class="num">R$ 500–1.200</td><td>Mais caro e você administra tudo. Só vale se a receita já paga.</td></tr>
+        <tr><td><b>Site</b> (todos os cenários)</td><td>Separado do jogo</td><td>VPS pequena ou hospedagem PHP + Cloudflare grátis</td><td class="num">R$ 25–60</td><td>Se site e jogo estiverem no mesmo IP, o ataque ao site derruba o jogo.</td></tr>
+        <tr><td><b>Extras</b></td><td>Sempre</td><td>Domínio .com.br, backup externo (Backblaze/S3), e-mail transacional</td><td class="num">R$ 15–40</td><td>Domínio vencido tira o site e o login do ar.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="grid2">
+      <div class="card"><h3>Checklist ao contratar</h3><ul><li>Anti-DDoS cobre TCP na porta do jogo (7171/7172)?</li><li>Ping de SP, RJ, Nordeste e Sul abaixo de ~80 ms?</li><li>Aceitam servidor de jogo (alguns proíbem OT nos termos)?</li><li>Snapshot/backup incluso? Suporte em português ou 24h?</li><li>Pagamento mensal, sem fidelidade no começo.</li></ul></div>
+      <div class="card"><h3>Montagem da máquina</h3><ul><li>Ubuntu/Debian LTS atualizado; usuário "ots" sem sudo rodando o servidor.</li><li>Firewall (ufw/nftables): só 7171, 7172 e SSH; site em outra máquina.</li><li>SSH por chave, fail2ban, root desligado.</li><li>MySQL só em localhost, senha forte, usuário por aplicação.</li><li>systemd para reiniciar o servidor sozinho; logrotate.</li><li>Fuso horário e NTP certos (eventos e save dependem disso).</li></ul></div>
+      <div class="card"><h3>Backup 3-2-1</h3><ul><li>3 cópias, 2 lugares diferentes, 1 fora da hospedagem.</li><li>Banco a cada 1–6 h; pasta do servidor 1x/dia.</li><li>Criptografado (a base tem e-mails: LGPD).</li><li>Manter 7 diários, 4 semanais, 3 mensais.</li></ul></div>
+      <div class="card"><h3>Dia do lançamento</h3><ul><li>Subir um nível de máquina por 1–2 semanas (pico de curiosos).</li><li>Ter o contato do suporte anti-DDoS em mãos.</li><li>Fila de login e limite por IP ligados.</li><li>Você e mais 1 pessoa de plantão nas primeiras 48 h.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="projecoes">
+    <div class="intro">
+      <span class="eyebrow">Estimativas, não promessas</span>
+      <h2>Projeções: cenário normal e otimista</h2>
+      <p>Baseado no que é comum em OTs brasileiros 7.x pequenos e médios: pico no lançamento, queda forte nos primeiros 2 meses e estabilização. Pagantes ≈ contas ativas no mês × taxa de conversão; ticket médio já descontada a taxa do pagamento (~5%). Atualize com seus números reais depois do beta.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Mês</th><th>Online médio</th><th>Contas ativas</th><th>Pagantes</th><th>Receita</th><th>Custos</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td colspan="7"><b>Cenário normal</b> · VPS (cenário B), conversão 5–6%, ticket ≈ R$ 35</td></tr>
+        <tr><td>1 (abertura)</td><td class="num">60–90</td><td class="num">600</td><td class="num">36</td><td class="num">R$ 1.260</td><td class="num">R$ 380</td><td class="num">+R$ 880</td></tr>
+        <tr><td>3</td><td class="num">35–50</td><td class="num">350</td><td class="num">20</td><td class="num">R$ 700</td><td class="num">R$ 300</td><td class="num">+R$ 400</td></tr>
+        <tr><td>6</td><td class="num">25–40</td><td class="num">250</td><td class="num">15</td><td class="num">R$ 525</td><td class="num">R$ 300</td><td class="num">+R$ 225</td></tr>
+        <tr><td>12</td><td class="num">25–40*</td><td class="num">220</td><td class="num">13</td><td class="num">R$ 455</td><td class="num">R$ 300</td><td class="num">+R$ 155</td></tr>
+        <tr><td colspan="7"><b>Cenário otimista</b> · começa no B, migra para C no mês 2, conversão 7–8%, ticket ≈ R$ 45</td></tr>
+        <tr><td>1 (abertura)</td><td class="num">200–300</td><td class="num">2.500</td><td class="num">200</td><td class="num">R$ 9.000</td><td class="num">R$ 1.500**</td><td class="num">+R$ 7.500</td></tr>
+        <tr><td>3</td><td class="num">120–160</td><td class="num">1.500</td><td class="num">110</td><td class="num">R$ 4.950</td><td class="num">R$ 1.300</td><td class="num">+R$ 3.650</td></tr>
+        <tr><td>6</td><td class="num">90–130</td><td class="num">1.200</td><td class="num">90</td><td class="num">R$ 4.050</td><td class="num">R$ 1.300</td><td class="num">+R$ 2.750</td></tr>
+        <tr><td>12</td><td class="num">80–120*</td><td class="num">1.000</td><td class="num">80</td><td class="num">R$ 3.600</td><td class="num">R$ 1.300</td><td class="num">+R$ 2.300</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted" style="font-size:14px">* Com temporadas/eventos a cada 6–8 semanas; sem isso, conte com metade. ** Inclui máquina maior no lançamento, divulgação (OTServList, anúncios, streamers) e contador/MEI. Custos do normal: VPS R$ 200 + site R$ 40 + extras R$ 30 + divulgação/ferramentas; não inclui seu tempo.</p>
+    <div class="grid2">
+      <div class="card"><h3>O que puxa para o otimista</h3><ul><li>Beta fechado bem feito e lançamento com data marcada e contagem regressiva.</li><li>Zero rollback e zero clone no primeiro mês.</li><li>Divulgação em OTServList, Discord de OT e streamers pequenos.</li><li>Sistema de raridade/forja como diferencial claro no site.</li><li>Ping bom para o Brasil todo.</li></ul></div>
+      <div class="card"><h3>O que puxa para baixo</h3><ul><li>DDoS ou quedas na primeira semana (jogador não volta).</li><li>Loja que vende poder: gratuitos saem, pagantes ficam sozinhos.</li><li>Inflação de gold/gemas: itens perdem valor e ninguém compra.</li><li>Bots dominando hunts e highscores.</li><li>Conflito de nome/marca ou problema legal na loja.</li></ul></div>
+      <div class="card"><h3>Pior caso (para planejar)</h3><ul><li>20–30 online no mês 1, quase sem vendas.</li><li>Custo mínimo viável: ~R$ 250/mês (VPS + site + domínio).</li><li>Tenha reserva para 6 meses (~R$ 1.500) antes de abrir.</li><li>Ponto de equilíbrio: ~8 pagantes/mês com ticket de R$ 35.</li></ul></div>
+      <div class="card"><h3>Impostos e formalização</h3><ul><li>Receita recorrente pede CNPJ (MEI tem teto anual e lista de atividades; confirmar com contador).</li><li>Mercado Pago/PagSeguro retêm e reportam vendas.</li><li>Guardar notas e recibos: base para estornos e LGPD.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="decisoes">
+    <div class="intro">
+      <span class="eyebrow">Para você decidir</span>
+      <h2>Decisões em aberto</h2>
+      <p class="muted">Elas mudam o caminho de várias tarefas. Anote a resposta na nota de cada uma.</p>
+    </div>
+    <div id="phase-decisions"></div>
+  </section>
+
+  <footer>
+    <span>Fontes: <a href="https://canaltech.com.br/games/lei-felca-estreia-causando-alvoroco-e-ja-mexe-com-lol-fortnite-e-gta/" target="_blank" rel="noopener">Canaltech, ECA Digital e jogos</a> · <a href="https://www.poder360.com.br/poder-governo/eca-digital-entra-em-vigor-nesta-3a-feira-entenda-o-que-muda/" target="_blank" rel="noopener">Poder360, entrada em vigor</a> · <a href="https://otland.net/threads/automatic-tibia-coin-payment-method-for-aac.284872/" target="_blank" rel="noopener">OTLand, pagamento automático de coins</a></span>
+    <span>Status e notas ficam salvos neste checkpoint para todos que você compartilhar e para mim.</span>
+  </footer>
+</div>
+
+<script>
+const PHASES = [
+  { id: "done", target: "phase-done", title: "Base já construída", desc: "Mapa, sistemas e cliente.", tasks: [
+    ["d-map", "Templo, sala de teleports e 30 hunts temáticas", "Áreas com cavernas e montanhas, vitrines de monstros, zona segura na chegada.", "done"],
+    ["d-trainers", "Trainers e portas por level", "16 cabines com Trainer e gate of expertise.", "done"],
+    ["d-houses", "Casas: 46 registradas, compra e venda", "!buyhouse e !leavehouse; Sand Mansion em 8 apartamentos.", "done"],
+    ["d-xp", "Estágios de XP, loot 2x, skills 15x, PvP até level 80", "Configurável no config.lua.", "done"],
+    ["d-tasks", "Task Master com 30 tasks progressivas", "Contagem de kills no servidor e recompensas em XP e gold.", "done"],
+    ["d-rarity", "Raridade de itens com 33 atributos e 5 tiers", "Magic Gems, drop de monstros, Gem Smith.", "done"],
+    ["d-client", "OTCv8: bordas de raridade e janela de Forja", "Módulo mods/game_rarity.", "done"],
+    ["d-linux", "Compilação e teste do servidor em Linux", "Usado para validar cada mudança antes de instalar.", "done"],
+    ["d-forge2", "Mestre da Forja, quebrar itens e gemas agrupáveis", "Forja ao lado direito do Templo; quebrar dá gemas até o tier do item; janela só abre na área da Forja.", "done"],
+    ["d-start", "Início no level 8 com kit por vocação e 5k", "XP 20x escondida até o level 10; spellbook para todos; promotion sem premium.", "done"],
+    ["d-spells", "Spells por level e novas magias de knight", "Exori Gran, Exeta Res, Exeta Gran Res.", "done"],
+  ]},
+  { id: "p0", title: "Fase 0 · Segurança e dados", desc: "Obrigatório antes de qualquer jogador de fora.", tasks: [
+    ["s-hash", "Senhas com hash forte (bcrypt/argon2)", "Hoje ficam em texto puro nos XML de conta.", "todo", "crit"],
+    ["s-crypto", "Login criptografado no cliente", "O protocolo 7.6 manda conta e senha sem criptografia. Exigir o OTCv8 com login por token do site.", "todo", "crit"],
+    ["s-accmaker", "Desligar o criador de contas do cliente", "accmaker = \"main\" deixa qualquer um criar contas sem limite.", "todo", "crit"],
+    ["s-db", "Migrar contas e personagens para MySQL", "XML não tem transações; queda no meio do save pode perder ou duplicar itens.", "todo", "high"],
+    ["s-packets", "Validar o tamanho de cada pacote recebido", "A leitura de pacotes não confere o tamanho da mensagem.", "todo", "high"],
+    ["s-flood", "Limite de conexões e tentativas de login por IP", "Protege contra força bruta e flood.", "todo", "high"],
+    ["s-gm", "Contas GM protegidas e log de comandos", "GM cria itens com /i; login de GM só de IPs liberados.", "todo", "high"],
+    ["s-backup", "Backup automático fora da máquina", "Diário, com teste de restauração.", "todo", "med"],
+    ["s-host", "Servidor rodando como usuário sem privilégio e firewall", "Só a porta do jogo e do site abertas; proteção anti-DDoS na hospedagem.", "todo", "med"],
+    ["s-leak", "Corrigir vazamento de memória ao remover itens", "Player::removeItem não libera o item removido.", "todo", "med"],
+    ["s-dupe", "Auditoria anti-clone de itens", "Cada item raro ganha ID único (serial); script diário procura seriais repetidos. Testar trade, depot, casa e queda do servidor no meio do save.", "todo", "crit"],
+    ["s-sql", "Consultas ao banco sempre parametrizadas", "Nunca montar SQL com texto do jogador (nome, recado de casa, nome de guild). Vale para servidor e site.", "todo", "crit"],
+    ["s-secrets", "Senhas e chaves fora do código", "config.lua, senha do MySQL e token do Mercado Pago fora do Git; MySQL ouvindo só em 127.0.0.1.", "todo", "high"],
+    ["s-ssh", "SSH só com chave, sem login de root", "Senha desligada, porta trocada, fail2ban; painel da hospedagem com 2FA.", "todo", "high"],
+    ["s-web", "Site com HTTPS, captcha e proteção contra robôs", "Cloudflare na frente do site (o jogo não passa pelo Cloudflare comum), rate limit em login e recuperação de senha.", "todo", "high"],
+    ["s-speed", "Validação de movimento e ações no servidor", "Conferir velocidade de passo, intervalo de ataque/magia e uso de runas/poções: barra speedhack e macro acima do humano.", "todo", "high"],
+    ["s-bot", "Detecção de bot e magebomb", "Limite de personagens online por IP, alerta para quem caça 20h seguidas, comando de GM para checar jogador.", "todo", "med"],
+    ["s-crash", "Reinício automático e log de crash", "systemd/supervisor reinicia o processo; core dump guardado para achar o bug. Save antes do reinício diário.", "todo", "med"],
+    ["s-fuzz", "Teste de carga e pacotes malformados", "Simular 200+ conexões e mandar pacotes quebrados antes do beta.", "todo", "med"],
+  ]},
+  { id: "p1", title: "Fase 1 · Economia e progressão", desc: "Equilibrar antes de vender qualquer coisa.", tasks: [
+    ["e-drops", "Baixar o drop de raridade e de gemas", "Aplicar a tabela da seção Economia.", "done"],
+    ["e-sinks", "Taxas de refino e aluguel de casas", "Gold saindo do jogo na mesma velocidade que entra.", "done"],
+    ["e-lock", "Pergaminho de travar atributo", "Mantém um atributo e sorteia os outros.", "done"],
+    ["e-bosses", "Bosses semanais com gemas garantidas", "Um por faixa de level.", "done"],
+    ["e-taskgems", "Gemas como recompensa das tasks finais", "Liga a Task Master ao refino.", "done"],
+    ["e-ranking", "Ranking de itens Legendary e de tasks", "Mostra no site quem tem o quê.", "todo"],
+  ]},
+  { id: "p1b", title: "Fase 1B · Conteúdo e sistemas (pedidos de 22/10)", desc: "Próximas tarefas antes de pensar em loja: mapa, quests, progressão e Forja.", tasks: [
+    ["n-mapclose", "Fechar o acesso ao restante do mapa", "Pensar nas quests, talvez usando a estrutura e os baús que já existem no mapa, e verificar se fazem sentido com o servidor.", "todo", "high"],
+    ["n-hunts", "Melhorar as hunts", "Revisar tamanho, quantidade de monstros, respawn e decoração.", "todo"],
+    ["n-startkit", "Anel inicial de 6 horas e arma inicial mágica", "Adventurer ring (+20 vida/mana a cada 4 s, 6 h) e arma inicial Common com Attack Speed +15% (valor fixo, fora das rolagens). Feito em 22/10.", "done"],
+    ["n-temple", "Refazer o visual do Templo", "Está feio: redecorar mantendo o funcionamento.", "todo"],
+    ["n-elements", "Adicionar Holy e Frost", "Novos elementos de dano (spells, wands/rods, Additional Damage).", "todo"],
+    ["n-taskpoints", "Task points e quests liberadas por pontos", "Feito: pontos por faixa, repetição (+30% kills, 1 por dia, vira à meia-noite) e loja (XP boost 35, selo 40, gemas, ticket de boss 80, anel 10). Falta: quests exigindo pontos.", "doing", "high"],
+    ["n-gearprog", "Progressão de equipamentos pelas tasks", "Recompensas com itens mágicos pré-definidos por nós, sem quebrar a proposta de raridade. Claude sugere a trilha.", "todo"],
+    ["n-manarune", "Mana runes", "Mana (lv 20), Strong (lv 30) e Super (lv 60) no Dark Rodo; mana fluid removido. Feito em 22/10.", "done"],
+    ["n-market", "Sistema de trade (Market) como nos clientes novos", "Menu de trade acessível pelo baú (depot): ofertas de compra e venda entre jogadores, histórico e taxa. Precisa de módulo no OTClient e de servidor guardando as ofertas.", "todo", "high"],
+    ["n-mapstudy", "Estudar melhor a construção de mapas", "Antes de mexer no mapa: estudar bordas, paredes e cantos (padrão do usuário: SE = 1053, NW 1052/1054), decoração por tema, alturas e escadas, usando mapas bem feitos e o RME como referência, e registrar as regras no guia de mapa.", "todo", "high"],
+    ["n-outfit", "Adicionar Outfit e atribuir outfit para recompensa de tasks", "Importar o outfit Demon Hunter (sprites de versões mais novas) para o cliente e o servidor e dar na task de Demons. Por enquanto o Dwarf fica como placeholder (!outfit com o título Demon Slayer).", "todo"],
+    ["n-titles", "Sistema de títulos", "Feito: data/titles.lua, bônus do título ativo, visível só no look, !titulo e !outfit. Demon Slayer: +10% Attack Speed e +5% Fire Resist. Próximo: efeitos visuais com o título.", "doing"],
+    ["n-runestack", "Runas agrupáveis em vez de cargas", "Runas empilham até 100 por slot, sem cargas.", "todo"],
+    ["n-forgetabs", "Janela da Forja com duas abas", "Refinar: escolher item também dentro da mochila (drop down). Quebrar: lista só itens da mochila, filtro por checkboxes de raridade (texto na cor do tier) e botão Selecionar.", "todo"],
+    ["n-opttiers", "Opções com tier próprio dentro do item", "Ex.: Legendary com 3 opções pode vir Elite + Rare + Legendary; sempre ao menos uma do tier do item e mínimo Rare (e assim para os outros tiers). Mostrar o tier de cada opção no look. Feito em 22/10 (texto no look; cores no cliente ficam para depois).", "done"],
+  ]},
+  { id: "p2", title: "Fase 2 · Monetização", desc: "Depende do banco de dados e da validação jurídica.", tasks: [
+    ["m-coins", "Vitalia Coins com entrega automática", "Webhook do pagamento com assinatura verificada e registro de cada transação.", "todo"],
+    ["m-vip", "VIP de 30 dias", "Benefícios da seção Monetização.", "todo"],
+    ["m-store", "Loja dentro do cliente", "Nova aba no OTCv8, no mesmo canal da Forja.", "todo"],
+    ["m-cosmetic", "Cosméticos exclusivos", "Outfits e cores que o cliente 7.6 consegue mostrar.", "todo"],
+    ["m-pass", "Passe de temporada", "Trilha gratuita e paga, recompensas conhecidas.", "todo"],
+    ["m-legal", "Termos de uso, política de privacidade (LGPD) e regra de idade", "Validar com advogado antes de vender.", "todo", "crit"],
+  ]},
+  { id: "p3", title: "Fase 3 · Site", desc: "Conta, loja, rankings e painel.", tasks: [
+    ["w-base", "Escolher base: MyAAC adaptado ou site próprio", "Depende da migração para MySQL.", "todo"],
+    ["w-account", "Criar conta, recuperar senha e 2FA", "Única porta de criação de conta.", "todo"],
+    ["w-download", "Página de download do cliente configurado", "OTCv8 com o módulo de raridade e o IP do servidor.", "todo"],
+    ["w-pages", "Highscores, online, mortes, casas e wiki", "Wiki explica tasks, gemas e raridade.", "todo"],
+    ["w-admin", "Painel do admin", "Vendas, estornos, banimentos, log de GM.", "todo"],
+  ]},
+  { id: "p4", title: "Fase 4 · Conteúdo e lançamento", desc: "Mundo vivo e abertura controlada.", tasks: [
+    ["c-quests", "Quests com recompensas únicas", "Itens que só existem por quest, nunca à venda.", "todo"],
+    ["c-events", "Eventos automáticos", "Invasões, boss mundial, dias de XP dobrada.", "todo"],
+    ["c-host", "Hospedagem com proteção anti-DDoS", "Servidor e site separados.", "todo"],
+    ["c-beta", "Beta fechado", "Convidados testam economia e segurança antes da abertura.", "todo"],
+    ["c-launch", "Abertura pública", "Com tudo da Fase 0 marcado como feito.", "todo"],
+  ]},
+  { id: "p5", title: "Fase 5 · Operação contínua", desc: "Rotina depois da abertura: o que olhar toda semana.", tasks: [
+    ["o-monitor", "Monitor de uptime e alerta no celular", "UptimeRobot/BetterStack avisando no Discord/Telegram quando o jogo ou o site cair.", "todo"],
+    ["o-metrics", "Painel de CPU, RAM, disco e jogadores online", "Netdata ou Grafana; disco cheio de log é causa clássica de queda.", "todo"],
+    ["o-logs", "Rotação de logs e retenção", "logrotate; guardar logs de trade, GM e compras por 6 a 12 meses para resolver disputas.", "todo"],
+    ["o-restore", "Treino de restauração mensal", "Subir um backup numa máquina limpa e ver se o servidor abre. Backup não testado não existe.", "todo"],
+    ["o-staging", "Servidor de teste separado", "Toda mudança passa no teste antes de ir para produção; nunca editar direto na máquina dos jogadores.", "todo"],
+    ["o-rollback", "Plano de rollback", "Se uma atualização quebrar a economia: voltar backup, comunicar, compensar. Decidir antes, não na hora.", "todo"],
+    ["o-chargeback", "Política de estorno e chargeback", "Estorno no cartão remove coins e itens comprados; reincidente é banido. Escrito nos termos.", "todo"],
+    ["o-support", "Discord com canais de suporte e denúncia", "Tickets, regras, anúncios e changelog. Staff com permissões mínimas.", "todo"],
+    ["o-staff", "Regras para a equipe (GM/tutor)", "GM não joga em conta própria no mesmo mundo, não dá itens, tudo logado. Remover acesso de quem sair.", "todo"],
+    ["o-update", "Janela de manutenção fixa", "Ex.: terça 6h, com aviso in-game 15/5/1 min antes.", "todo"],
+    ["o-ddos", "Plano para ataque DDoS", "Saber como acionar o suporte da hospedagem, trocar IP/proxy e avisar jogadores. Concorrentes de OT atacam no lançamento.", "todo"],
+    ["o-ip", "Proxy de jogo para esconder o IP real", "Proxy anti-DDoS (ex.: TCPShield-like/OVH Game/proxy próprio) na frente do servidor.", "todo"],
+  ]},
+  { id: "dec", target: "phase-decisions", title: "Decisões", desc: "Respostas que destravam outras tarefas.", tasks: [
+    ["q-name", "Nome do servidor", "Hoje usamos Vitalia, o nome da cidade.", "todo"],
+    ["q-age", "Servidor 18+ ou livre para todas as idades", "Decide se pode existir caixa aleatória paga.", "todo"],
+    ["q-db", "Migrar para MySQL agora ou site lendo XML", "Recomendo migrar antes do site.", "todo"],
+    ["q-pay", "Meio de pagamento", "Mercado Pago com PIX é o mais comum em OT brasileiro.", "todo"],
+    ["q-host", "Onde hospedar no lançamento", "Ver seção Hospedagem: VPS com anti-DDoS é o ponto de partida recomendado.", "todo"],
+    ["q-budget", "Quanto posso gastar por mês sem retorno", "Define o cenário da seção Projeções e quanto tempo o servidor aguenta sem vendas.", "todo"],
+    ["q-amulets", "Amuletos refináveis ou só por loot", "Hoje todos os amuletos, anéis e mochilas são só por loot.", "todo"],
+  ]},
+];
+
+const SEC = [
+  ["crit", "Senhas das contas ficam em texto puro nos XML (md5passwords = \"no\"; e MD5 sem salt também é fraco).", "Hash bcrypt ou argon2, gerado pelo site e conferido pelo servidor."],
+  ["crit", "O protocolo 7.6 não criptografa o login: conta e senha passam abertas pela rede.", "Login pelo site gerando um token de uso único; o cliente OTCv8 envia o token, nunca a senha."],
+  ["crit", "Criador de contas dentro do cliente ligado (accmaker = \"main\"), sem limite nem verificação.", "Desligar (accmaker = \"none\") e criar contas só pelo site, com e-mail e captcha."],
+  ["high", "Contas, personagens e casas salvos em XML, sem transação: queda durante o save pode perder ou duplicar itens.", "Migrar para MySQL; compras da loja gravadas com ID único para nunca entregar duas vezes."],
+  ["high", "A leitura de pacotes não confere o tamanho da mensagem recebida (NetworkMessage).", "Checar o limite em cada leitura e desconectar quem mandar pacote malformado."],
+  ["high", "Não encontrei limite de conexões ou tentativas de login por IP.", "Limite por IP, atraso progressivo após senha errada, bloqueio temporário."],
+  ["high", "Comandos de GM criam itens e mudam donos de casas; não há log.", "Log de todo comando de GM, 2FA e login de GM só de IPs liberados."],
+  ["med", "Servidor de 2006, compilado em 32 bits, com bibliotecas antigas.", "Rodar como usuário sem privilégio, firewall só com as portas necessárias, atualizar dependências."],
+  ["med", "Player::removeItem retira o item sem liberar a memória.", "Liberar o item removido; evita o servidor crescer em memória com o tempo."],
+  ["crit", "Sem serial único nos itens: um bug de clone (trade, depot, queda no save) passa despercebido e destrói a economia.", "Serial em itens raros e varredura diária por duplicados; log de trade."],
+  ["crit", "Risco de SQL injection quando migrar para MySQL (nomes, recados, guild).", "Prepared statements em todo lugar; usuário do banco do site sem permissão de DROP/ALTER."],
+  ["high", "Movimento, ataque e uso de itens dependem do ritmo que o cliente manda.", "Servidor impõe velocidade e intervalos (exhaust); cliente modificado não consegue acelerar."],
+  ["high", "IP do servidor exposto vira alvo de DDoS no lançamento.", "Hospedagem com anti-DDoS para jogo (TCP), proxy e IP do site diferente do IP do jogo."],
+  ["high", "Chaves de pagamento e senha do banco podem acabar no repositório ou em backup público.", "Variáveis de ambiente, .gitignore, backup criptografado."],
+  ["med", "Sem monitoramento: o servidor pode cair de madrugada e ninguém saber.", "Monitor de uptime, reinício automático e alerta no celular."],
+  ["med", "Contas de staff com mais poder que o necessário.", "Níveis de acesso (tutor, GM, admin), 2FA e revisão mensal de quem tem acesso."],
+  ["ok", "Forja e Gem Smith: o servidor confere gema, gold e item antes de refinar; o cliente só pede.", "Manter essa regra em toda função nova da loja."],
+];
+
+const LABEL = { todo: "A fazer", doing: "Em andamento", done: "Feito", blocked: "Bloqueado" };
+const SEVLABEL = { crit: "Crítico", high: "Alto", med: "Médio", ok: "OK" };
+let state = {};      // id -> {status, note}
+let db = null;
+
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in (attrs || {})) {
+    if (k === "class") e.className = attrs[k]; else if (k === "text") e.textContent = attrs[k]; else e.setAttribute(k, attrs[k]);
+  }
+  kids.forEach(c => c && e.append(c));
+  return e;
+}
+function statusOf(t) { return (state[t[0]] && state[t[0]].status) || t[3]; }
+
+function renderSecurity() {
+  const tb = document.getElementById("sec-rows");
+  tb.replaceChildren(...SEC.map(([sev, what, fix]) => el("tr", null,
+    el("td", null, el("span", { class: "tag " + sev, text: SEVLABEL[sev] })),
+    el("td", { text: what }), el("td", { text: fix }))));
+}
+
+function taskRow(t) {
+  const [id, title, desc, , sev] = t;
+  const s = statusOf(t);
+  const row = el("div", { class: "task", "data-status": s, id: "t-" + id });
+  const what = el("div", { class: "what" });
+  const head = el("div", { style: "display:flex;gap:8px;align-items:baseline;flex-wrap:wrap" }, el("strong", { text: title }));
+  if (sev) head.append(el("span", { class: "tag " + sev, text: SEVLABEL[sev] }));
+  what.append(head, el("small", { text: desc }));
+  const sel = el("select", { class: "status", id: "s-" + id, "data-s": s, "aria-label": "Status: " + title });
+  for (const k in LABEL) { const o = el("option", { value: k, text: LABEL[k] }); if (k === s) o.selected = true; sel.append(o); }
+  sel.addEventListener("change", () => save(id, { status: sel.value }));
+  const note = (state[id] && state[id].note) || "";
+  const nb = el("button", { class: "note-btn" + (note ? " has" : ""), type: "button", text: note ? "nota ✎" : "+ nota", "aria-expanded": "false" });
+  const ctrl = el("div", { class: "ctrl" }, sel, nb);
+  row.append(what, ctrl);
+  const box = el("div", { class: "note" });
+  box.hidden = !note;
+  const ta = el("textarea", { id: "n-" + id, placeholder: "Anotações, decisões, links…", "aria-label": "Nota: " + title });
+  ta.value = note;
+  const saveBtn = el("button", { class: "save", type: "button", text: "Salvar nota" });
+  saveBtn.addEventListener("click", () => save(id, { note: ta.value.trim() }));
+  box.append(ta, el("div", { class: "row" }, saveBtn));
+  nb.addEventListener("click", () => { box.hidden = !box.hidden; nb.setAttribute("aria-expanded", String(!box.hidden)); if (!box.hidden) ta.focus(); });
+  row.append(box);
+  return row;
+}
+
+function renderPhases() {
+  const main = document.getElementById("phases");
+  main.replaceChildren();
+  PHASES.forEach(p => {
+    const done = p.tasks.filter(t => statusOf(t) === "done").length;
+    const card = el("div", { class: "phase", id: "ph-" + p.id });
+    card.append(el("div", { class: "phase-head" }, el("h3", { text: p.title }), el("span", { class: "count", text: done + " de " + p.tasks.length + " feitas" }), el("p", { text: p.desc })));
+    p.tasks.forEach(t => card.append(taskRow(t)));
+    if (p.target) document.getElementById(p.target).replaceChildren(card); else main.append(card);
+  });
+  renderMeters();
+}
+
+function renderMeters() {
+  const m = document.getElementById("meters");
+  m.replaceChildren(...PHASES.filter(p => p.id !== "dec").map(p => {
+    const n = p.tasks.length, d = p.tasks.filter(t => statusOf(t) === "done").length;
+    const blocked = p.tasks.filter(t => statusOf(t) === "blocked").length;
+    const bar = el("div", { class: "bar" }, el("i", { style: "width:" + Math.round(100 * d / n) + "%" }));
+    const label = p.title.replace(/^Fase \d+ · /, "");
+    return el("div", { class: "meter" }, el("span", { text: label }), el("b", { text: d + "/" + n + (blocked ? " · " + blocked + " bloq." : "") }), bar);
+  }));
+}
+
+async function save(id, patch) {
+  state[id] = Object.assign({}, state[id] || {}, patch);
+  renderPhases();
+  const focusEl = document.getElementById((patch.note !== undefined ? "n-" : "s-") + id);
+  if (focusEl) focusEl.focus();
+  if (!db) { try { localStorage.setItem("vitalia-state", JSON.stringify(state)); setSync("Salvo neste navegador."); } catch (e) { setSync("Sem armazenamento: a mudança vale só nesta aba."); } return; }
+  try {
+    await db.collection("items").doc(id).set({ status: state[id].status || null, note: state[id].note || "", updatedAt: new Date().toISOString() });
+    setSync("Salvo às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+  } catch (e) {
+    setSync(e && e.code === "not_granted" ? "Você tem acesso só de leitura a este checkpoint." : "Não consegui salvar (" + ((e && e.code) || "erro") + "). Tente de novo.");
+  }
+}
+function setSync(t) { document.getElementById("sync").textContent = t; }
+
+renderSecurity();
+renderPhases();
+
+(async () => {
+  try { db = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch (e) { db = null; }
+  if (!db) { try { state = JSON.parse(localStorage.getItem("vitalia-state") || "{}"); renderPhases(); setSync("Status salvos neste navegador."); } catch (e) { setSync("Status salvos indisponíveis aqui."); } return; }
+  db.collection("items").onSnapshot(snap => {
+    const next = {};
+    snap.docs.forEach(d => { const v = d.data() || {}; next[d.id] = { status: v.status || undefined, note: v.note || "" }; });
+    const active = document.activeElement && document.activeElement.tagName === "TEXTAREA" ? document.activeElement : null;
+    state = next;
+    if (!active) renderPhases(); else renderMeters();
+    setSync(snap.size ? "Status sincronizados" : "Nenhum status salvo ainda: os padrões abaixo valem até você mudar algo.");
+  }, err => setSync("Não consegui ler os status (" + err.code + ")."));
+})();
+</script>
+
+</body></html>

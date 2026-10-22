@@ -1,0 +1,1 @@
+window.CAT_BASE = {};

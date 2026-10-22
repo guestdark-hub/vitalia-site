@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vitalia - Painel</title>
+<style>
+:root{--bg:#17181b;--panel:#202126;--ink:#ebe7dc;--muted:#a29d90;--line:#34353b;--accent:#e3a73f}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px "Segoe UI",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:18px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+header b{font-family:Georgia,serif;font-size:20px;letter-spacing:.02em}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:none;border:1px solid transparent;color:var(--muted);padding:7px 14px;border-radius:6px;font:600 14px inherit;cursor:pointer}
+nav button.on{color:var(--ink);border-color:var(--line);background:var(--bg)}
+nav button:hover{color:var(--ink)}
+iframe{display:block;width:100%;height:calc(100% - 55px);border:0;background:var(--bg)}
+</style>
+</head>
+<body>
+<header>
+  <b>Vitalia</b>
+  <nav id="tabs">
+    <button data-p="checkpoint.html">Checkpoint</button>
+    <button data-p="mapas.html">Estudo de mapas</button>
+    <button data-p="catalogo.html">Catálogo de sprites</button>
+  </nav>
+</header>
+<iframe id="view" title="Conteudo"></iframe>
+<script>
+const tabs=document.querySelectorAll('#tabs button'), view=document.getElementById('view');
+function open(p){view.src=p;tabs.forEach(b=>b.classList.toggle('on',b.dataset.p===p));try{localStorage.setItem('vit-tab',p)}catch(e){}}
+tabs.forEach(b=>b.onclick=()=>open(b.dataset.p));
+let last='checkpoint.html';try{last=localStorage.getItem('vit-tab')||last}catch(e){}
+open(last);
+</script>
+</body>
+</html>

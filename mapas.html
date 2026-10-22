@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Estudo de mapas</title>
+<style>
+:root{--bg:#17181b;--panel:#202126;--ink:#ebe7dc;--muted:#a29d90;--line:#34353b;--accent:#e3a73f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Segoe UI",system-ui,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 60px}
+h1{font:700 30px Georgia,serif;margin:0 0 6px}
+h2{font:700 21px Georgia,serif;margin:34px 0 8px;color:var(--accent)}
+h3{font:700 16px Georgia,serif;margin:18px 0 6px}
+p{max-width:75ch}
+.muted{color:var(--muted)}
+figure{margin:12px 0;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+figure img{display:block;width:100%;height:auto;image-rendering:auto}
+figcaption{padding:8px 12px;color:var(--muted);font-size:14px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+ul{padding-left:20px}
+li{margin:3px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--panel);border-radius:8px;overflow:hidden}
+th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+code{font-family:Consolas,monospace;color:#f3cf8b}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Estudo de construção de mapas</h1>
+<p class="muted">Referência: o mapa real do Tibia 7.7 (projeto Nostalrius) e o mapa 7.6 que veio com o YurOTS, renderizados aqui com as sprites do seu cliente. As regras abaixo são o que eu vou seguir daqui para frente em todo mapa do Vitalia, e cada entrega vai vir com uma imagem renderizada assim para você aprovar antes de instalar.</p>
+
+<h2>1. Templos</h2>
+<div class="two">
+<figure><img src="img/thais_templo.jpg" alt="Templo de Thais renderizado"><figcaption>Thais (mapa real): templo em cruz, mármore branco, xadrez no centro, pilares em pares, jardim em volta.</figcaption></figure>
+<figure><img src="img/vitalia_templo_atual.jpg" alt="Templo atual do Vitalia"><figcaption>Vitalia hoje: retângulo, mármore preto e branco sem desenho, paredes de madeira e pouca moldura externa.</figcaption></figure>
+</div>
+<ul>
+<li><b>Forma simétrica e reconhecível</b> (cruz, nave com transepto ou planta octogonal). Templo é o único prédio da cidade que deve ser simétrico de propósito.</li>
+<li><b>Piso de mármore branco</b> como base e um <b>desenho no centro</b> (xadrez preto e branco, tapete, mosaico) marcando o ponto de chegada.</li>
+<li><b>Paredes de pedra</b> (stone wall), nunca de madeira. Madeira é para casas.</li>
+<li><b>Pilares em pares</b> ao longo da nave, <b>coal basins / lamps</b> nas paredes a cada 4–6 sqm e uma fonte ou altar como foco.</li>
+<li><b>Entrada larga</b> (3 sqm) voltada para a rua principal, com calçamento chegando até a porta.</li>
+<li><b>Moldura externa</b>: canteiros de flores (moon flowers, heaven blossom) encostados nas paredes, árvores alinhadas (yellow maple, poplar), grama com borda limpa até a rua.</li>
+</ul>
+
+<h2>1b. Templos com teleports (servidores monetizados)</h2>
+<p>Em servidores com hunts por teleport, o templo vira o centro do jogo: é onde o jogador nasce, volta e escolhe para onde ir. O que os mapeadores experientes elogiam e criticam nesses templos, nas revisões do OTLand:</p>
+<ul>
+<li><b>Pequeno e compacto.</b> A crítica mais comum é templo grande demais e vazio. O salão principal tem 9–13 sqm de largura; o resto vira alas.</li>
+<li><b>Sala de teleports separada</b> da área de chegada, numa ala própria (atrás do altar ou num braço da cruz), toda em zona de proteção, para quem sai da hunt não cair em cima de quem está entrando.</li>
+<li><b>Poucos teleports por sala</b> (4 a 6) e em ritmo: teleport, pilar, teleport. Mais destinos = outra sala por faixa de level, não uma parede de portais.</li>
+<li><b>Cada teleport tem moldura</b>: piso de destaque embaixo (pedra cinza ou cor da faixa), pilar ou estátua do lado e o nome em texto animado. A estátua do monstro ou a cor do piso indica a dificuldade.</li>
+<li><b>NPCs espaçados</b>, cada um no seu balcão fixo (mesa que não se move), com pelo menos 1 sqm livre entre eles.</li>
+<li><b>Depot fora do templo</b> ou numa ala lateral, com lockers e boxes de 2 sqm de profundidade (ninguém empurra o outro para fora).</li>
+<li><b>Não misturar pisos</b> dentro do templo nem encher de bordas metálicas; um piso base e um desenho central bastam. Nada de pedras ou lixo sobre piso de mármore.</li>
+<li><b>Portas e móveis certos</b>: porta comum (não de casa), móveis fixos, lixeira e caixa de correio perto do depot.</li>
+</ul>
+<figure><img src="img/demo_templo_tps.jpg" alt="Protótipo de templo com sala de teleports"><figcaption>Protótipo gerado com o motor de pincéis (abaixo): cruz compacta, ala norte de teleports em ritmo teleport–pilar, xadrez no centro, paredes de pedra conectadas como no mapa real, terra e calçamento com borda automática, flores encostadas nas paredes e árvores em grupos irregulares. É um estudo, ainda não está no seu mapa.</figcaption></figure>
+
+<h2>1c. O editor de mapas (Remere's Map Editor) e o que eu aproveitei dele</h2>
+<p>O RME que está na sua pasta guarda, em <code>data/760</code>, as regras que ele usa para "pintar" o mapa. Eu li esses arquivos e montei um motor que faz a mesma coisa nos mapas que eu gero:</p>
+<ul>
+<li><b>Pisos com variação</b> (<code>grounds.xml</code>): cada piso tem uma lista de variações com chance. A grama, por exemplo, usa 20 variações; é isso que tira o aspecto de "azulejo".</li>
+<li><b>Bordas automáticas</b> (<code>borders.xml</code>): cada piso tem prioridade (z-order) e um conjunto de 12 peças de borda (4 lados, 4 cantos de fora, 4 cantos de dentro). O piso de prioridade maior desenha a borda sobre o vizinho. Agora eu aplico isso em todo contorno.</li>
+<li><b>Paredes que se conectam</b> (<code>walls.xml</code> + mapa real): aprendi do mapa real qual peça vai em cada encaixe (reta, canto, T, cruz) para parede de pedra, tijolo, madeira e rocha. Também confirmei a regra do chão embaixo da parede: paredes do lado norte e oeste ficam sobre o chão de fora; as do sul e leste, sobre o piso de dentro.</li>
+<li><b>Doodads</b> (<code>doodads.xml</code>): 144 grupos prontos (árvores, flores, pedras, móveis, estátuas), que eu uso para decorar com variedade em vez de repetir o mesmo item.</li>
+</ul>
+<div class="two">
+<figure><img src="img/borda_sem.jpg" alt="Sem borda"><figcaption>Sem borda: terra e calçamento cortados em quadrados.</figcaption></figure>
+<figure><img src="img/borda_com.jpg" alt="Com borda"><figcaption>Com o motor de bordas: transições arredondadas, como no RME.</figcaption></figure>
+</div>
+
+<h2>2. Cidades</h2>
+<div class="two">
+<figure><img src="img/carlin.jpg" alt="Carlin"><figcaption>Carlin: ruas de calçamento com bordas, casas de framework, grama com bordas e decoração alinhada às paredes.</figcaption></figure>
+<figure><img src="img/venore.jpg" alt="Venore"><figcaption>Venore: cidade sobre a água, pontes e cais. O tema (pântano, madeira) aparece em todos os detalhes.</figcaption></figure>
+</div>
+<ul>
+<li><b>Ruas de 3 a 5 sqm</b> de calçamento, com a rua principal mais larga ligando templo, depot e saídas.</li>
+<li><b>Toda transição tem borda</b>: grama ↔ terra, grama ↔ calçamento, terra ↔ água. Nunca deixar dois pisos crus encostando.</li>
+<li><b>Variação de piso</b>: alternar 2–3 variações do mesmo chão (ex.: três tipos de grama) para não ficar "azulejo".</li>
+<li><b>Decoração com função</b>: barris e caixas junto a lojas, mesas e cadeiras dentro de tavernas, bancos nas praças. Encostar nas paredes e deixar ~70% do interior livre.</li>
+<li><b>Tema por bairro</b>: cada cidade tem materiais próprios (Carlin = madeira clara e flores; Venore = madeira escura e água; Kazordoon = pedra e lava).</li>
+<li><b>Paredes em perspectiva</b>: o cliente mostra o lado norte e oeste; cantos com as peças certas (padrão do Vitalia: canto SE = 1053, cantos NW 1052/1054).</li>
+</ul>
+
+<h2>3. Cavernas e hunts</h2>
+<div class="two">
+<figure><img src="img/kazordoon_mina.jpg" alt="Mina de Kazordoon"><figcaption>Mina de Kazordoon: túneis de 2–4 sqm que serpenteiam em diagonal, paredes de montanha só nas bordas.</figcaption></figure>
+<figure><img src="img/kazordoon_cidade.jpg" alt="Kazordoon"><figcaption>Kazordoon: cidade dentro da montanha, salas largas ligadas por corredores.</figcaption></figure>
+</div>
+<ul>
+<li><b>Corredores de 2 a 4 sqm</b>, tortos e em diagonal, abrindo em <b>salões</b> de 8–15 sqm onde ficam os spawns.</li>
+<li><b>Parede de montanha</b> (stone wall de chão + peças de borda) contornando todo o vazio; nunca túnel retangular perfeito.</li>
+<li><b>Chão misturado</b>: terra como base com manchas de muddy floor (10–15%) e pedra perto de construções.</li>
+<li><b>Detalhes esparsos e temáticos</b>: ossos e lixo em hunts de monstros, ferramentas e trilhos em minas, teias em cavernas de aranha. 1 detalhe a cada 6–10 sqm.</li>
+<li><b>Luz</b>: tochas nas entradas e nos salões; hunts profundas podem ser escuras de propósito.</li>
+<li><b>Densidade</b>: cerca de 1 monstro para cada 20–30 sqm livres, com corredores de respiro sem spawn e uma rota de saída clara.</li>
+</ul>
+
+<h2>4. Itens de referência (já convertidos para o seu servidor)</h2>
+<table>
+<thead><tr><th>Uso</th><th>Item</th><th>ID no Vitalia</th></tr></thead>
+<tbody>
+<tr><td>Piso de templo</td><td>white marble floor / black marble floor</td><td><code>406</code> / <code>407</code></td></tr>
+<tr><td>Piso de casa</td><td>wooden floor</td><td><code>405</code></td></tr>
+<tr><td>Rua</td><td>cobbled pavement</td><td><code>724</code></td></tr>
+<tr><td>Grama (variações)</td><td>grass</td><td><code>4526</code>, <code>4529</code>, <code>4530</code></td></tr>
+<tr><td>Borda de grama</td><td>grass (borda)</td><td><code>4543</code>, <code>4545</code></td></tr>
+<tr><td>Parede de templo</td><td>stone wall</td><td><code>1049</code>, <code>1050</code>, <code>1056</code></td></tr>
+<tr><td>Parede de casa</td><td>framework wall</td><td><code>1036</code>, <code>1037</code></td></tr>
+<tr><td>Iluminação</td><td>coal basin / wall lamp / lit candelabrum / torch bearer</td><td><code>1481</code> / <code>2037</code>, <code>2038</code> / <code>2057</code> / <code>2058</code>, <code>2059</code></td></tr>
+<tr><td>Decoração de templo</td><td>marble pillar / fountain</td><td><code>1515</code> / <code>1360</code></td></tr>
+<tr><td>Jardim</td><td>moon flowers / heaven blossom / yellow maple / poplar</td><td><code>2740</code> / <code>2743</code> / <code>2706</code> / <code>2708</code></td></tr>
+<tr><td>Caverna (chão)</td><td>earth / muddy floor / stone floor</td><td><code>101</code> / <code>354</code>, <code>355</code> / <code>431</code></td></tr>
+<tr><td>Caverna (parede)</td><td>stone wall (montanha)</td><td><code>371</code>–<code>374</code></td></tr>
+<tr><td>Detalhes de hunt</td><td>piece of iron / rotten meat / rubbish</td><td><code>2225</code> / <code>2227</code> / <code>2241</code></td></tr>
+</tbody>
+</table>
+
+<h2>5. Como vou trabalhar daqui para frente</h2>
+<div class="card">
+<ol>
+<li>Sempre partir do mapa salvo por você e fazer backup antes.</li>
+<li>Montar a área seguindo as regras acima, com o tema definido antes (materiais, decoração, monstros).</li>
+<li><b>Renderizar com as sprites reais</b> e comparar com a referência do mapa real antes de te mandar.</li>
+<li>Você aprova a imagem; só então instalo no servidor.</li>
+</ol>
+</div>
+</div>
+</body>
+</html>
