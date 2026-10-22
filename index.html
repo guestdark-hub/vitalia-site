@@ -29,7 +29,7 @@ iframe{display:block;width:100%;height:calc(100% - 55px);border:0;background:var
 <iframe id="view" title="Conteudo"></iframe>
 <script>
 const tabs=document.querySelectorAll('#tabs button'), view=document.getElementById('view');
-function open(p){view.src=p;tabs.forEach(b=>b.classList.toggle('on',b.dataset.p===p));try{localStorage.setItem('vit-tab',p)}catch(e){}}
+function open(p){view.src=p+'?v='+Date.now();tabs.forEach(b=>b.classList.toggle('on',b.dataset.p===p));try{localStorage.setItem('vit-tab',p)}catch(e){}}
 tabs.forEach(b=>b.onclick=()=>open(b.dataset.p));
 let last='checkpoint.html';try{last=localStorage.getItem('vit-tab')||last}catch(e){}
 open(last);
