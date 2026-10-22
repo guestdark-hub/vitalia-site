@@ -30,6 +30,16 @@ button.on{background:var(--accent);color:#000;border-color:var(--accent)}
 .cell span{display:block;font:11px Consolas,monospace;color:var(--muted)}
 .cell i{position:absolute;top:2px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
 .note{color:var(--muted);font-size:13px;line-height:1.5}
+#ctx{position:fixed;display:none;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px;min-width:200px;box-shadow:0 6px 24px #000a}
+#ctx button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 10px}
+#ctx button:hover{background:var(--bg)} #ctx button.danger{color:#ff8a7a} #ctx hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+.cats .arr{display:inline-block;width:14px;color:var(--muted);font-weight:400;cursor:pointer}
+.cats div.drop{outline:2px dashed var(--accent);background:var(--bg)}
+.tabs{border-bottom:1px solid var(--line);padding-bottom:8px}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.mcard{background:#0e0f11;border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+.mcard:hover{border-color:var(--accent)} .mcard.sel{outline:2px solid var(--accent)}
+.mcard canvas{background:none;border:0;min-height:64px} .mcard b{font-size:13px} .mcard small{color:var(--muted);font-size:11px} .mcard em{font-style:normal;font-size:11px;color:var(--accent)}
 #toast{position:fixed;bottom:14px;right:14px;background:var(--accent);color:#000;padding:8px 12px;border-radius:6px;display:none;z-index:50}
 /* montador */
 #asm{display:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px}
@@ -54,7 +64,7 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
   <div class="row"><button id="prev">&lt;</button><select id="page"></select><button id="next">&gt;</button></div>
   <div class="row"><input id="goto" type="number" min="1" placeholder="ID" style="width:100px"><button id="gobtn">Ir</button></div>
   <h2>Categorias</h2>
-  <p class="note">Selecione sprites (clique; Shift+clique pega um intervalo) e salve numa categoria. Use "&gt;" para subcategorias: <code>Monstros &gt; Dragoes</code>. Clique direito numa categoria para apagar.</p>
+  <p class="note">Selecione sprites (clique; Shift+clique pega um intervalo) e salve numa categoria, ou arraste a seleção até uma categoria. Use "&gt;" para subcategorias: <code>Monstros &gt; Dragoes</code>. Botão direito numa sprite ou categoria: excluir.</p>
   <div class="row"><input id="catname" placeholder="Monstros > Dragoes" style="flex:1"><button id="addcat">Salvar seleção</button></div>
   <div class="row"><button id="clearsel">Limpar seleção</button><span id="selcount" class="note"></span></div>
   <div class="cats" id="cats"></div>
@@ -71,6 +81,7 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
   <div class="row"><button id="export">Exportar</button><button onclick="document.getElementById('imp').click()">Importar</button><input id="imp" type="file" accept=".json" hidden></div>
 </aside>
 <main>
+  <div class="row tabs"><button id="tabS" class="on">Sprites</button><button id="tabM">Monstros montados</button></div>
   <section id="asm">
     <div>
       <h3 class="st">1. O monstro</h3>
@@ -120,9 +131,17 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
   </section>
   <div class="row"><b id="title"></b><span class="note" id="info"></span></div>
   <div class="grid" id="grid"></div>
+  <div id="mview" style="display:none">
+    <div class="row"><input id="msearch" placeholder="Buscar por nome ou categoria" style="flex:1;min-width:180px">
+      <select id="mtype"><option value="monstro" selected>Só monstros</option><option value="item">Só itens e efeitos</option><option value="todos">Tudo montado</option></select>
+      <label><input id="mdraft" type="checkbox" checked> mostrar rascunhos</label></div>
+    <p class="note">Arraste um card para uma categoria da esquerda para mudar de lugar. Ctrl+clique seleciona vários. Botão direito: excluir.</p>
+    <div class="mgrid" id="mgrid"></div>
+  </div>
 </main>
 </div>
 <div id="toast"></div>
+<div id="ctx"></div>
 <script>
 const N=39252, PER=400, COLS=20, PAGES=Math.ceil(N/PER);
 const $=id=>document.getElementById(id);
@@ -145,12 +164,12 @@ async function ghLoad(){
 }
 async function ghSave(){
   if(!ghToken){ghStatus('Sem token: salvo só neste navegador');return}
-  const body=JSON.stringify({categorias:cats,agrupamentos:groups},null,1);
-  for(let tent=0;tent<2;tent++){
+  for(let tent=0;tent<3;tent++){
+    const body=JSON.stringify({categorias:cats,agrupamentos:groups},null,1), nP=pending.length;
     const r=await fetch(ghUrl(),{method:'PUT',headers:{Authorization:'Bearer '+ghToken,Accept:'application/vnd.github+json'},
       body:JSON.stringify({message:'catalogo: atualizado pelo site',content:b64(body),sha:ghSha||undefined})});
-    if(r.ok){ghSha=(await r.json()).content.sha;ghStatus('Salvo no GitHub '+new Date().toLocaleTimeString());return}
-    if(r.status===409||r.status===422){try{const j=await ghLoad(); if(j){merge(j);render()}}catch(e){} continue}
+    if(r.ok){ghSha=(await r.json()).content.sha;pending.splice(0,nP);ghStatus('Salvo no GitHub '+new Date().toLocaleTimeString());return}
+    if(r.status===409||r.status===422){try{const j=await ghLoad(); if(j){cats=j.categorias||{};groups=j.agrupamentos||{};pending.forEach(f=>{try{f()}catch(e){}});render()}}catch(e){} continue}
     ghStatus(r.status===401||r.status===403?'Token recusado pelo GitHub':'Erro ao salvar ('+r.status+')');return
   }
 }
@@ -175,12 +194,16 @@ function cell(id){
   d.onclick=ev=>{
     if(asmOpen && act){ setSlot(id); return }
     if(ev.shiftKey&&lastClick){const a=Math.min(lastClick,id),b=Math.max(lastClick,id);for(let x=a;x<=b;x++)sel.add(x)}
-    else{ if(sel.has(id))sel.delete(id); else sel.add(id); try{navigator.clipboard.writeText('sprite #'+id)}catch(e){} toast('sprite #'+id+' copiado')}
+    else{ if(sel.has(id))sel.delete(id); else sel.add(id); try{navigator.clipboard.writeText('sprite #'+id).catch(()=>{})}catch(e){} toast('sprite #'+id+' copiado')}
     lastClick=id; render();
   };
+  d.draggable=true;
+  d.ondragstart=ev=>{ const ids=(sel.has(id)&&sel.size>1)?[...sel]:[id]; dragStart(ev,{kind:'sprites',ids},ids.length+' sprite(s)') };
+  d.oncontextmenu=ev=>spriteMenu(ev,id);
   return d;
 }
 function render(){
+  if(typeof view!=='undefined'&&view==='monstros'){ renderMonsters(); $('selcount').textContent=sel.size?sel.size+' selecionada(s)':''; renderCats(); return }
   const g=$('grid'); g.replaceChildren();
   if(filter){
     const ids=(cats[filter]||[]).slice().sort((a,b)=>a-b);
@@ -194,25 +217,37 @@ function render(){
   $('page').value=page; $('selcount').textContent=sel.size?sel.size+' selecionada(s)':'';
   renderCats();
 }
+let expanded=new Set(); try{expanded=new Set(JSON.parse(localStorage.getItem('vit-open')||'[]'))}catch(e){}
+function toggleOpen(k){ expanded.has(k)?expanded.delete(k):expanded.add(k); try{localStorage.setItem('vit-open',JSON.stringify([...expanded]))}catch(e){} renderCats() }
 function renderCats(){
   if(typeof asmOpen!=='undefined'&&asmOpen) fillCatSelect();
   const box=$('cats'); box.replaceChildren();
-  const all=document.createElement('div'); all.innerHTML='<span>Todas as sprites</span>'; all.className=filter?'':'on'; all.onclick=()=>{filter=null;render()}; box.append(all);
-  const keys=[...new Set([...Object.keys(cats),...Object.keys(groups)])].sort();
+  const all=document.createElement('div'); all.innerHTML='<span>Todas as sprites</span>'; all.className=filter?'':'on'; all.onclick=()=>{filter=null;if(view!=='sprites')setView('sprites');else render()}; dropTarget(all,''); box.append(all);
+  // pastas: toda categoria pai aparece, mesmo sem sprites proprias
+  const base=[...Object.keys(cats),...Object.keys(groups)], set=new Set(base);
+  base.forEach(k=>{const p=k.split(' > ');for(let i=1;i<p.length;i++) set.add(p.slice(0,i).join(' > '))});
+  const keys=[...set].sort((a,b)=>a.localeCompare(b));
+  const kids=k=>keys.some(x=>x.startsWith(k+' > '));
+  const visible=k=>{const p=k.split(' > ');for(let i=1;i<p.length;i++) if(!expanded.has(p.slice(0,i).join(' > '))) return false; return true};
+  if(filter){const p=filter.split(' > ');for(let i=1;i<p.length;i++) expanded.add(p.slice(0,i).join(' > '))}
   keys.forEach(k=>{
-    const depth=k.split('>').length-1, label=k.split('>').pop().trim();
-    if(cats[k]){
+    if(!visible(k)) return;
+    const depth=k.split(' > ').length-1, label=leaf(k).replace(/</g,'&lt;'), hasK=kids(k), pad=depth*12;
+    const arrow=hasK?`<b class="arr" data-k="">${expanded.has(k)?'▾':'▸'}</b>`:'<b class="arr"></b>';
+    if(cats[k]||(!groups[k])){
       const d=document.createElement('div'); d.className=filter===k?'on':'';
-      d.innerHTML=`<span style="padding-left:${depth*12}px">${label}</span><small>${cats[k].length}</small>`;
-      d.title=k; d.onclick=()=>{filter=k;render()};
-      d.oncontextmenu=ev=>{ev.preventDefault(); if(confirm('Apagar a categoria "'+k+'"?')){delete cats[k];save();if(filter===k)filter=null;render()}};
-      box.append(d);
+      const n=cats[k]?cats[k].length:'';
+      d.innerHTML=`<span style="padding-left:${pad}px">${arrow}${label}</span><small>${n}</small>`;
+      d.title=k+' (arraste sprites ou montados para cá; botão direito: excluir)';
+      d.onclick=ev=>{ if(ev.target.classList.contains('arr')&&hasK){toggleOpen(k);return}
+        if(cats[k]){filter=k;if(view!=='sprites')setView('sprites');else render()} else toggleOpen(k) };
+      d.oncontextmenu=ev=>catMenu(ev,k); dropTarget(d,k); box.append(d);
     }
     if(groups[k]){
-      const d=document.createElement('div');
-      d.innerHTML=`<span style="padding-left:${depth*12}px">&#9654; ${label}</span><small>${groups[k].tipo==='monstro'?(groups[k].pronto?'monstro ✓':'rascunho'):'item'}</small>`;
-      d.title='Agrupamento: '+k+' (clique para abrir no montador)'; d.onclick=()=>loadGroup(k);
-      d.oncontextmenu=ev=>{ev.preventDefault(); if(confirm('Apagar o agrupamento "'+k+'"?')){delete groups[k];save();render()}};
+      const g=groups[k], d=document.createElement('div');
+      d.innerHTML=`<span style="padding-left:${pad}px"><b class="arr"></b>&#9654; ${label}</span><small>${(g.tipo||'item')==='monstro'?(g.pronto===false?'rascunho':'monstro ✓'):'item'}</small>`;
+      d.title='Montado: '+k+' (clique para abrir no montador; arraste para outra categoria)'; d.onclick=()=>{loadGroup(k);scrollTo(0,0)};
+      d.oncontextmenu=ev=>groupMenu(ev,k); d.draggable=true; d.ondragstart=ev=>dragStart(ev,{kind:'groups',keys:[k]},leaf(k));
       box.append(d);
     }
   });
@@ -344,7 +379,7 @@ $('fill').onclick=fillTibia; $('cfill').onclick=fillCorpo;
 $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pausar':'Animar'};
 $('gclear').onclick=()=>{dirs=[[],[],[],[]];mask=[[],[],[],[]];corpo=[];act=null;$('gname').value='';$('fid').value='';$('cid').value='';refresh()};
 $('gcat').onchange=()=>{ if($('gcat').value==='__nova'){const n=(prompt('Nome da nova categoria (use > para subcategoria):')||'').split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
-  if(n){if(!cats[n])cats[n]=[];save();renderCats();fillCatSelect(n)} else fillCatSelect('')} };
+  if(n){apply(()=>{if(!cats[n])cats[n]=[]});fillCatSelect(n)} else fillCatSelect('')} };
 $('gsave').onclick=()=>{
   const nm=$('gname').value.split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
   if(!nm){toast('Dê um nome ao monstro');return}
@@ -355,7 +390,7 @@ $('gsave').onclick=()=>{
   if(d.L===2) g.mask=JSON.parse(JSON.stringify(d.mon?mask:[[],[],mask[2],[]]));
   if(d.mon) g.corpo={w:d.cw,h:d.chh,slots:JSON.parse(JSON.stringify(corpo))};
   g.slots=g.dirs[2];
-  groups[name]=g; save(); render(); fillCatSelect(cat);
+  apply(()=>{groups[name]=g}); fillCatSelect(cat);
   toast((g.pronto?'Monstro pronto salvo: ':'Rascunho salvo: ')+name);
 };
 
@@ -395,6 +430,118 @@ $('gif').onclick=()=>{
   }catch(e){toast('Abra o site pelo atalho (o navegador bloqueou a leitura das imagens)')}
 };
 
+/* ---------- edicao: menu do botao direito, arrastar e soltar, exclusao ---------- */
+// toda mudanca passa por apply(): se o GitHub recusar por conflito, recarrega o arquivo e refaz as mudancas pendentes
+let pending=[];
+function apply(fn){ try{fn()}catch(e){console.error(e)} pending.push(fn); save(); render() }
+const cleanName=s=>(s||'').split('>').map(x=>x.trim()).filter(Boolean).join(' > ');
+const leaf=k=>k.split(' > ').pop();
+const parentOf=k=>{const p=k.split(' > ');p.pop();return p.join(' > ')};
+function uniqueKey(k){ if(!groups[k]) return k; let i=2; while(groups[k+' ('+i+')']) i++; return k+' ('+i+')' }
+function moveGroup(k,cat){ if(!groups[k]) return; const nk=cat?cat+' > '+leaf(k):leaf(k); if(nk===k) return; const g=groups[k]; delete groups[k]; groups[uniqueKey(nk)]=g }
+function moveSprites(ids,cat){ const s=new Set(ids); for(const k in cats) cats[k]=cats[k].filter(x=>!s.has(x)); if(cat) cats[cat]=[...new Set([...(cats[cat]||[]),...ids])] }
+function removeSprites(ids,cat){ const s=new Set(ids); for(const k in cats) if(!cat||k===cat) cats[k]=cats[k].filter(x=>!s.has(x)) }
+function under(k){ const p=k+' > '; return {sub:Object.keys(cats).filter(x=>x.startsWith(p)), grp:Object.keys(groups).filter(x=>x.startsWith(p))} }
+function deleteCategory(k,deep){ delete cats[k]; if(deep){const u=under(k); u.sub.forEach(x=>delete cats[x]); u.grp.forEach(x=>delete groups[x])} if(filter===k||(deep&&filter&&filter.startsWith(k+' > '))) filter=null }
+function renameCategory(k){
+  const n=cleanName(prompt('Novo nome da categoria (use > para subcategoria):',k)); if(!n||n===k) return;
+  apply(()=>{ const ren=x=>n+x.slice(k.length);
+    if(cats[k]){cats[n]=[...new Set([...(cats[n]||[]),...cats[k]])]; delete cats[k]}
+    const u=under(k); u.sub.forEach(x=>{cats[ren(x)]=cats[x]; delete cats[x]}); u.grp.forEach(x=>{const g=groups[x]; delete groups[x]; groups[uniqueKey(ren(x))]=g});
+    if(filter===k) filter=n });
+}
+// menu
+function menu(ev,items){
+  ev.preventDefault(); ev.stopPropagation(); const m=$('ctx'); m.replaceChildren();
+  items.filter(Boolean).forEach(it=>{ if(it==='-'){m.append(document.createElement('hr'));return}
+    const b=document.createElement('button'); b.textContent=it.label; if(it.danger) b.className='danger';
+    b.onclick=()=>{hideMenu(); it.fn()}; m.append(b) });
+  m.style.display='block'; const r=m.getBoundingClientRect();
+  m.style.left=Math.min(ev.clientX,innerWidth-r.width-8)+'px'; m.style.top=Math.min(ev.clientY,innerHeight-r.height-8)+'px';
+}
+function hideMenu(){ $('ctx').style.display='none' }
+addEventListener('click',hideMenu); addEventListener('scroll',hideMenu,true); addEventListener('keydown',e=>{if(e.key==='Escape')hideMenu()});
+// arrastar
+let dragData=null;
+function dragStart(ev,data,label){ dragData=data; try{ev.dataTransfer.setData('text/plain',label||'')}catch(e){} ev.dataTransfer.effectAllowed='move' }
+function dropTarget(el,cat){
+  el.ondragover=ev=>{ if(!dragData) return; ev.preventDefault(); el.classList.add('drop') };
+  el.ondragleave=()=>el.classList.remove('drop');
+  el.ondrop=ev=>{ ev.preventDefault(); el.classList.remove('drop'); const d=dragData; dragData=null; if(!d) return;
+    if(d.kind==='sprites'){ apply(()=>moveSprites(d.ids,cat)); sel.clear(); toast(cat?d.ids.length+' sprite(s) movida(s) para '+cat:d.ids.length+' sprite(s) tirada(s) das categorias') }
+    if(d.kind==='groups'){ apply(()=>d.keys.forEach(k=>moveGroup(k,cat))); selG.clear(); toast(d.keys.length+' montado(s) movido(s) para '+(cat||'(sem categoria)')) } };
+  el.addEventListener('dragend',()=>{dragData=null});
+}
+addEventListener('dragend',()=>{dragData=null; document.querySelectorAll('.drop').forEach(e=>e.classList.remove('drop'))});
+// menus de cada coisa
+function spriteMenu(ev,id){
+  const ids=(sel.has(id)&&sel.size>1)?[...sel]:[id], n=ids.length, inCat=ids.filter(x=>catOf(x)).length;
+  menu(ev,[
+    filter&&{label:`Excluir da categoria "${leaf(filter)}"`+(n>1?` (${n})`:''),danger:true,fn:()=>{apply(()=>removeSprites(ids,filter));ids.forEach(x=>sel.delete(x));toast(n+' sprite(s) excluída(s) de '+filter)}},
+    !filter&&inCat&&{label:'Excluir das categorias'+(n>1?` (${inCat})`:''),danger:true,fn:()=>{apply(()=>removeSprites(ids,null));ids.forEach(x=>sel.delete(x));toast(inCat+' sprite(s) tirada(s) das categorias')}},
+    !filter&&!inCat&&{label:'Não está em nenhuma categoria',fn:()=>{}},
+    sel.size?'-':null,
+    sel.size&&{label:'Limpar seleção ('+sel.size+')',fn:()=>{sel.clear();render()}},
+  ]);
+}
+function catMenu(ev,k){
+  const u=under(k), extra=u.sub.length+u.grp.length;
+  menu(ev,[
+    cats[k]&&{label:'Abrir',fn:()=>{filter=k;setView('sprites')}},
+    {label:'Renomear...',fn:()=>renameCategory(k)},
+    '-',
+    cats[k]&&{label:`Excluir categoria (${cats[k].length} sprites)`,danger:true,fn:()=>{apply(()=>deleteCategory(k,false));toast('Categoria excluída: '+k)}},
+    extra&&{label:`Excluir com tudo dentro (${u.sub.length} subcategorias, ${u.grp.length} montados)`,danger:true,fn:()=>{ if(confirm('Excluir "'+k+'" e tudo que está dentro dela?')){apply(()=>deleteCategory(k,true));toast('Excluído: '+k)} }},
+  ]);
+}
+function groupMenu(ev,k){
+  const keys=(selG.has(k)&&selG.size>1)?[...selG]:[k], n=keys.length;
+  menu(ev,[
+    n===1&&{label:'Abrir no montador',fn:()=>{loadGroup(k);scrollTo(0,0)}},
+    n===1&&{label:'Renomear...',fn:()=>{const nm=cleanName(prompt('Novo nome:',leaf(k)));if(nm)apply(()=>{const g=groups[k];delete groups[k];const p=parentOf(k);groups[uniqueKey(p?p+' > '+nm:nm)]=g})}},
+    '-',
+    {label:n>1?`Excluir ${n} montados`:'Excluir',danger:true,fn:()=>{apply(()=>keys.forEach(x=>delete groups[x]));selG.clear();toast(n>1?n+' montados excluídos':'Excluído: '+leaf(k))}},
+  ]);
+}
+
+/* ---------- aba de monstros montados ---------- */
+let view='sprites', selG=new Set(), mfr=0;
+function groupFrame(g){ const d=g.dirs||[[],[],g.slots||[],[]]; for(const i of [2,1,0,3]) if((d[i]||[]).some(fm=>(fm||[]).some(r=>(r||[]).some(x=>x)))) return d[i]; return [] }
+function paintCard(cv){
+  const g=groups[cv.dataset.k]; if(!g) return; const fr=groupFrame(g), f=Math.max(1,fr.length), a=mfr%f, z=+cv.dataset.z, ctx=cv.getContext('2d');
+  ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,cv.width,cv.height);
+  const rows=fr[a]||[]; for(let r=0;r<rows.length;r++) for(let c=0;c<(rows[r]||[]).length;c++){ const id=rows[r][c]; if(!id) continue;
+    const s=img(id); if(s.im.complete) ctx.drawImage(s.im,s.x,s.y,32,32,c*32*z,r*32*z,32*z,32*z) }
+}
+function monsterKeys(){
+  const t=$('mtype').value, q=$('msearch').value.trim().toLowerCase();
+  return Object.keys(groups).filter(k=>{ const g=groups[k], tipo=g.tipo||'item';
+    if(t==='monstro'&&tipo!=='monstro') return false; if(t==='item'&&tipo!=='item') return false;
+    if(!$('mdraft').checked&&g.pronto===false) return false;
+    return !q||k.toLowerCase().includes(q) }).sort((a,b)=>leaf(a).localeCompare(leaf(b)));
+}
+function renderMonsters(){
+  const box=$('mgrid'); box.replaceChildren(); const keys=monsterKeys();
+  $('title').textContent='Monstros montados'; $('info').textContent=keys.length+' encontrado(s)'+(selG.size?' · '+selG.size+' selecionado(s)':'');
+  if(!keys.length){box.innerHTML='<p class="note">Nada montado com esse filtro. Monte no "Abrir montador" e salve.</p>';return}
+  keys.forEach(k=>{ const g=groups[k], w=g.w||1, h=g.h||1, z=Math.max(1,Math.min(3,Math.floor(96/(Math.max(w,h)*32))));
+    const d=document.createElement('div'); d.className='mcard'+(selG.has(k)?' sel':''); d.draggable=true;
+    const cv=document.createElement('canvas'); cv.width=w*32*z; cv.height=h*32*z; cv.dataset.k=k; cv.dataset.z=z; d.append(cv);
+    const st=(g.tipo||'item')==='monstro'?(g.pronto===false?'rascunho':'monstro ✓'):'item';
+    d.insertAdjacentHTML('beforeend',`<b>${leaf(k).replace(/</g,'&lt;')}</b><small>${(parentOf(k)||'(sem categoria)').replace(/</g,'&lt;')}</small><em>${st}</em>`);
+    d.title=k+'\nClique: abrir no montador · Ctrl/Shift+clique: selecionar vários · Arraste para uma categoria · Botão direito: excluir';
+    d.onclick=ev=>{ if(ev.ctrlKey||ev.metaKey||ev.shiftKey){ selG.has(k)?selG.delete(k):selG.add(k); renderMonsters(); return } loadGroup(k); scrollTo(0,0) };
+    d.oncontextmenu=ev=>groupMenu(ev,k);
+    d.ondragstart=ev=>{ const keys2=(selG.has(k)&&selG.size>1)?[...selG]:[k]; dragStart(ev,{kind:'groups',keys:keys2},leaf(k)) };
+    box.append(d); paintCard(cv);
+  });
+}
+function setView(v){ view=v; $('tabS').classList.toggle('on',v==='sprites'); $('tabM').classList.toggle('on',v==='monstros');
+  $('grid').style.display=v==='sprites'?'':'none'; $('mview').style.display=v==='monstros'?'':'none'; render() }
+$('tabS').onclick=()=>setView('sprites'); $('tabM').onclick=()=>setView('monstros');
+['mtype','mdraft'].forEach(i=>$(i).onchange=renderMonsters); $('msearch').oninput=renderMonsters;
+setInterval(()=>{ if(view!=='monstros') return; mfr++; document.querySelectorAll('#mgrid canvas').forEach(paintCard) },250);
+
 /* ---------- navegacao, categorias e exportacao ---------- */
 for(let p=0;p<PAGES;p++){const o=document.createElement('option');o.value=p;o.textContent=`${p*PER+1}-${Math.min(N,(p+1)*PER)}`;$('page').append(o)}
 $('page').onchange=e=>{page=+e.target.value;filter=null;render();scrollTo(0,0)};
@@ -404,22 +551,21 @@ $('gobtn').onclick=()=>{const id=+$('goto').value;if(id>=1&&id<=N){page=Math.flo
 $('addcat').onclick=()=>{
   const name=$('catname').value.split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
   if(!name||!sel.size){toast('Escolha um nome e selecione sprites');return}
-  for(const k in cats) cats[k]=cats[k].filter(x=>!sel.has(x));
-  cats[name]=[...new Set([...(cats[name]||[]),...sel])]; sel.clear(); save(); render(); toast('Salvo em '+name);
+  const ids=[...sel]; apply(()=>moveSprites(ids,name)); sel.clear(); render(); toast('Salvo em '+name);
 };
 $('clearsel').onclick=()=>{sel.clear();render()};
 $('export').onclick=()=>{const b=new Blob([JSON.stringify({categorias:cats,agrupamentos:groups},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='catalogo_sprites.json';a.click()};
 $('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const j=JSON.parse(t);const c=j.categorias||j, g=j.agrupamentos||{};
-  for(const k in c) if(Array.isArray(c[k])) cats[k]=[...new Set([...(cats[k]||[]),...c[k]])]; Object.assign(groups,g); save();render();toast('Importado')}catch(x){toast('Arquivo inválido')}})};
+  apply(()=>{for(const k in c) if(Array.isArray(c[k])) cats[k]=[...new Set([...(cats[k]||[]),...c[k]])]; Object.assign(groups,g)});toast('Importado')}catch(x){toast('Arquivo inválido')}})};
 render(); tick();
 if(GH){
   $('savenote').style.display='none'; $('ghbox').style.display='block';
   ghStatus(ghToken?'Conectado ao GitHub':'Sem token: salvo só neste navegador');
   $('ghsave').onclick=()=>{ghToken=$('ghtok').value.trim();try{localStorage.setItem('vit-gh-token',ghToken)}catch(e){};$('ghtok').value='';ghStatus(ghToken?'Token guardado. Salvando...':'Token removido');if(ghToken)ghSave()};
-  ghLoad().then(j=>{if(j&&merge(j)){try{localStorage.setItem('vit-cats',JSON.stringify(cats));localStorage.setItem('vit-groups',JSON.stringify(groups))}catch(e){};render()}}).catch(()=>{});
+  ghLoad().then(j=>{if(j){cats=j.categorias||{};groups=j.agrupamentos||{};try{localStorage.setItem('vit-cats',JSON.stringify(cats));localStorage.setItem('vit-groups',JSON.stringify(groups))}catch(e){};render()}}).catch(()=>{});
 }
-else if(HTTP) fetch('catalogo_sprites.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&merge(j)){save();render()}}).catch(()=>{});
+else if(HTTP) fetch('catalogo_sprites.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(j){cats=j.categorias||{};groups=j.agrupamentos||{};try{localStorage.setItem('vit-cats',JSON.stringify(cats));localStorage.setItem('vit-groups',JSON.stringify(groups))}catch(e){};render()}}).catch(()=>{});
 </script>
-<script src="catalogo_base.js" onload="if(window.CAT_BASE){let n=0;const c=CAT_BASE.categorias||CAT_BASE, g=CAT_BASE.agrupamentos||{};for(const k in c){if(Array.isArray(c[k])&&!cats[k]){cats[k]=c[k];n++}}for(const k in g){if(!groups[k]){groups[k]=g[k];n++}}if(n){save();render()}}"></script>
+<script src="catalogo_base.js" onload="if(window.CAT_BASE&&!GH&&!HTTP){let n=0;const c=CAT_BASE.categorias||CAT_BASE, g=CAT_BASE.agrupamentos||{};for(const k in c){if(Array.isArray(c[k])&&!cats[k]){cats[k]=c[k];n++}}for(const k in g){if(!groups[k]){groups[k]=g[k];n++}}if(n){save();render()}}"></script>
 </body>
 </html>
