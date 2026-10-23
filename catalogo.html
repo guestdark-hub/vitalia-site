@@ -68,7 +68,7 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
 <body>
 <div class="wrap">
 <aside>
-  <h2>Navegar <small id="ver" style="font:11px Consolas,monospace;color:var(--muted)">v 22/10 22:40</small></h2>
+  <h2>Navegar <small id="ver" style="font:11px Consolas,monospace;color:var(--muted)">v 23/10 · Pack 3</small></h2>
   <div class="row"><select id="packsel" style="flex:1"><option value="1">Pack 1 (39.252 sprites)</option><option value="2">Pack 2 - OpenTibia (7.691)</option></select></div>
   <div class="row"><button id="prev">&lt;</button><select id="page"></select><button id="next">&gt;</button></div>
   <div class="row"><input id="goto" type="number" min="1" placeholder="ID" style="width:100px"><button id="gobtn">Ir</button></div>
@@ -137,9 +137,11 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
   <div class="grid" id="grid"></div>
   <div id="mview" style="display:none">
     <div class="row"><input id="msearch" placeholder="Buscar por nome ou categoria" style="flex:1;min-width:180px">
+      <select id="mpack"><option value="0">Todos os packs</option></select>
       <select id="mtype"><option value="monstro" selected>Só monstros</option><option value="item">Só itens e efeitos</option><option value="mapa">Só objetos do mapa</option><option value="todos">Tudo montado</option></select>
       <label><input id="mdraft" type="checkbox" checked> mostrar rascunhos</label></div>
     <p class="note">Arraste um card para uma categoria da direita para mudar de lugar. Ctrl+clique seleciona vários. Botão direito: excluir.</p>
+    <div class="row"><button id="mprev">Anterior</button><span id="mpage" class="note"></span><button id="mnext">Próxima</button></div>
     <div class="mgrid" id="mgrid"></div>
   </div>
 </main>
@@ -155,14 +157,18 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
 <div id="toast"></div>
 <div id="ctx"></div>
 <div id="pick"></div>
+<script src="catalogo_packs.js"></script>
 <script>
 const PER=400, COLS=20;
-// Pack 1 = ids 1..39252 (sheets/sNNN.png); Pack 2 = OpenTibia Sprite Pack, ids 100001.. (sheets2/tNNN.png)
-const PACKS={1:{n:39252,off:0,dir:'sheets',pre:'s',nome:'Pack 1'},2:{n:7691,off:100000,dir:'sheets2',pre:'t',nome:'Pack 2'}};
+// Packs 1/2 preservados. Novos packs e offsets em catalogo_packs.js; nunca inferir pack por limite fixo100000.
+const PACKS={1:{n:39252,off:0,dir:'sheets',pre:'s',nome:'Pack 1'},2:{n:7691,off:100000,dir:'sheets2',pre:'t',nome:'Pack 2'}}
+Object.assign(PACKS,window.CATALOGO_PACKS||{});
+const packSelect=document.getElementById('packsel');
+for(const [key,p] of Object.entries(PACKS)){if(![...packSelect.options].some(o=>o.value===key)){const o=new Option(p.nome+' ('+p.n.toLocaleString('pt-BR')+')',key);packSelect.add(o)}}
 let pack=1; try{pack=+localStorage.getItem('vit-pack')||1}catch(e){} if(!PACKS[pack]) pack=1;
 const N=()=>PACKS[pack].n, PAGES=()=>Math.ceil(N()/PER);
-const packOf=id=>id>=100000?2:1, localId=id=>id-PACKS[packOf(id)].off, globalId=l=>PACKS[pack].off+l;
-const spriteLabel=id=>(packOf(id)===2?'Pack 2 ':'')+'sprite #'+localId(id);
+const packOf=id=>+Object.keys(PACKS).find(k=>id>PACKS[k].off&&id<=PACKS[k].off+PACKS[k].n)||1, localId=id=>id-PACKS[packOf(id)].off, globalId=l=>PACKS[pack].off+l;
+const spriteLabel=id=>PACKS[packOf(id)].nome+' sprite #'+localId(id);
 const $=id=>document.getElementById(id);
 let cats={}, groups={};
 try{cats=JSON.parse(localStorage.getItem('vit-cats')||'{}')}catch(e){}
@@ -205,9 +211,11 @@ function merge(j){const c=j.categorias||j, g=j.agrupamentos||{};let n=0;
   for(const k in c) if(Array.isArray(c[k])){const before=(cats[k]||[]).length;cats[k]=[...new Set([...(cats[k]||[]),...c[k]])];n+=cats[k].length-before}
   for(const k in g) if(!groups[k]){groups[k]=g[k];n++} return n}
 function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',1500)}
-function sheetPos(id){const P=PACKS[packOf(id)], l=localId(id), s=Math.floor((l-1)/PER),k=(l-1)%PER;return {url:`${P.dir}/${P.pre}${String(s).padStart(3,'0')}.png`,x:(k%COLS)*32,y:Math.floor(k/COLS)*32}}
+function sheetPos(id){const P=PACKS[packOf(id)],l=localId(id),per=P.per||PER,cols=P.cols||COLS,s=Math.floor((l-1)/per),k=(l-1)%per;return {url:`${P.dir}/${P.pre}${String(s).padStart(3,'0')}.png`,x:(k%cols)*32,y:Math.floor(k/cols)*32}}
 function bg(el,id){const p=sheetPos(id);el.style.background=`url(${p.url}) -${p.x}px -${p.y}px`}
-function catOf(id){for(const k in cats) if(cats[k].includes(id)) return k; return null}
+let spriteCats=new Map();
+function indexCats(){spriteCats=new Map();for(const k in cats)for(const id of cats[k])if(!spriteCats.has(id))spriteCats.set(id,k)}
+function catOf(id){return spriteCats.get(id)||null}
 
 /* ---------- lista de sprites ---------- */
 function cell(id){
@@ -227,6 +235,7 @@ function cell(id){
   return d;
 }
 function render(){
+  indexCats();
   if(typeof view!=='undefined'&&view==='monstros'){ renderMonsters(); $('selcount').textContent=sel.size?sel.size+' selecionada(s)':''; renderCats(); return }
   const g=$('grid'); g.replaceChildren();
   if(filter){
@@ -252,7 +261,8 @@ function renderCats(){
   const base=[...Object.keys(cats),...Object.keys(groups)], set=new Set(base);
   base.forEach(k=>{const p=k.split(' > ');for(let i=1;i<p.length;i++) set.add(p.slice(0,i).join(' > '))});
   const keys=[...set].sort((a,b)=>a.localeCompare(b));
-  const kids=k=>keys.some(x=>x.startsWith(k+' > '));
+  const parents=new Set();keys.forEach(k=>{const p=k.split(' > ');for(let i=1;i<p.length;i++)parents.add(p.slice(0,i).join(' > '))});
+  const kids=k=>parents.has(k);
   const q=($('catsearch').value||'').trim().toLowerCase();
   let shown=null;
   if(q){ // busca: mostra o que combina, as pastas acima e o que esta dentro
@@ -289,6 +299,7 @@ function renderCats(){
 // salvo em groups[categoria > nome] = {tipo:'monstro'|'item'|'mapa',w,h,frames,layers,speed,dirs[n][quadro][linha][col],mask,corpo,variacoes,pronto}
 // monstro: dirs[0..3] = norte, leste, sul, oeste; item: so dirs[2]; mapa: dirs[0..V-1] = variacoes (pisos, paredes, bordas...)
 const DIRN=['Norte','Leste','Sul','Oeste'];
+let loadedGroupReview=false;
 let asmOpen=false, act=null, dirs=[[],[],[],[]], mask=[[],[],[],[]], corpo=[], dir=2, playing=true, fr=0, timer=null;
 const imgs={};
 function img(id){const p=sheetPos(id); if(!imgs[p.url]){const i=new Image();i.src=p.url;i.onload=draw;imgs[p.url]=i} return {im:imgs[p.url],x:p.x,y:p.y}}
@@ -313,6 +324,7 @@ function missing(){
 }
 function renderReq(){
   const m=missing(), box=$('req');
+  if(loadedGroupReview&&!m.out.length){box.textContent='Montagem técnica completa pelos metadados; revisão visual e nome ainda pendentes. Salvar pronto confirma sua revisão.';$('gsave').textContent='Confirmar revisão e salvar pronto';return}
   box.innerHTML = m.out.length ? `<b style="color:var(--accent)">${m.ok} de ${m.tot} sprites.</b> Falta: `+m.out.slice(0,8).join(' · ')+(m.out.length>8?' ...':'')
     : `<b style="color:#7fd17f">Completo: ${m.tot} sprites. Pronto para o Claude importar.</b>`;
   $('gsave').textContent = m.out.length ? 'Salvar rascunho' : 'Salvar pronto';
@@ -400,6 +412,7 @@ function draw(){
 }
 function tick(){ if(playing){fr=(fr+1)%dims().f; draw()} timer=setTimeout(tick,+$('asp').value||200) }
 function loadGroup(k){
+  loadedGroupReview=!!groups[k].revisaoVisualPendente;
   const g=groups[k], tipo=g.tipo||(g.dirs&&g.dirs.filter(x=>x&&x.length).length>1?'monstro':'item');
   $('mtipo').value=tipo;
   $('aw').value=g.w; $('ah').value=g.h; $('af').value=g.frames; $('asp').value=g.speed||200; $('alay').value=g.layers||1;
@@ -424,7 +437,7 @@ $('asmToggle').onclick=toggleAsm;
 $('zoom').onchange=draw;
 $('fill').onclick=fillTibia; $('cfill').onclick=fillCorpo;
 $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pausar':'Animar'};
-$('gclear').onclick=()=>{dirs=[[],[],[],[]];mask=[[],[],[],[]];corpo=[];act=null;$('gname').value='';$('fid').value='';$('cid').value='';refresh()};
+$('gclear').onclick=()=>{loadedGroupReview=false;dirs=[[],[],[],[]];mask=[[],[],[],[]];corpo=[];act=null;$('gname').value='';$('fid').value='';$('cid').value='';refresh()};
 $('gcat').onchange=()=>{ if($('gcat').value==='__nova'){const n=(prompt('Nome da nova categoria (use > para subcategoria):')||'').split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
   if(n){apply(()=>{if(!cats[n])cats[n]=[]});fillCatSelect(n)} else fillCatSelect('')} };
 $('gsave').onclick=()=>{
@@ -438,7 +451,7 @@ $('gsave').onclick=()=>{
   if(d.L===2) g.mask=pick(mask);
   if(d.corpo) g.corpo={w:d.cw,h:d.chh,slots:cp(corpo)}; else if(d.mon) g.semCorpo=true;
   g.slots=d.mapa?g.dirs[0]:g.dirs[2];
-  apply(()=>{groups[name]=g}); fillCatSelect(cat);
+  apply(()=>{const previous=groups[name]||{};groups[name]={...previous,...g};if(previous.source)groups[name].sourceEdited=true;if('revisaoVisualPendente' in previous)groups[name].revisaoVisualPendente=!g.pronto;});loadedGroupReview=!g.pronto; fillCatSelect(cat);
   toast((g.pronto?'Salvo pronto: ':'Rascunho salvo: ')+name);
 };
 
@@ -593,7 +606,8 @@ function picker(ev,title,onPick,opt={}){
 addEventListener('mousedown',e=>{const b=$('pick'); if(b.style.display!=='none'&&!b.contains(e.target)&&!$('ctx').contains(e.target)) b.style.display='none'});
 
 /* ---------- aba de monstros montados ---------- */
-let view='sprites', selG=new Set(), mfr=0;
+let view='sprites', selG=new Set(), mfr=0, monsterPage=0;const MONSTER_PER=120;
+for(const [key,p] of Object.entries(PACKS))$('mpack').add(new Option(p.nome,key));
 function groupFrame(g){ const d=g.dirs||[[],[],g.slots||[],[]]; for(const i of (g.tipo==='mapa'?[...d.keys()]:[2,1,0,3])) if((d[i]||[]).some(fm=>(fm||[]).some(r=>(r||[]).some(x=>x)))) return d[i]; return [] }
 function paintCard(cv){
   const g=groups[cv.dataset.k]; if(!g) return; const fr=groupFrame(g), f=Math.max(1,fr.length), a=mfr%f, z=+cv.dataset.z, ctx=cv.getContext('2d');
@@ -602,17 +616,20 @@ function paintCard(cv){
     const s=img(id); if(s.im.complete) ctx.drawImage(s.im,s.x,s.y,32,32,c*32*z,r*32*z,32*z,32*z) }
 }
 function monsterKeys(){
-  const t=$('mtype').value, q=$('msearch').value.trim().toLowerCase();
+  const t=$('mtype').value, p=+$('mpack').value, q=$('msearch').value.trim().toLowerCase();
   return Object.keys(groups).filter(k=>{ const g=groups[k], tipo=g.tipo||'item';
     if(t!=='todos'&&tipo!==t) return false;
+    if(p&&+(g.pack||(k.match(/^Pack (\d+)/)||[])[1]||1)!==p)return false;
     if(!$('mdraft').checked&&g.pronto===false) return false;
     return !q||k.toLowerCase().includes(q) }).sort((a,b)=>leaf(a).localeCompare(leaf(b)));
 }
 function renderMonsters(){
   const box=$('mgrid'); box.replaceChildren(); const keys=monsterKeys();
+  const pages=Math.max(1,Math.ceil(keys.length/MONSTER_PER));monsterPage=Math.min(monsterPage,pages-1);
+  $('mpage').textContent=`Página ${monsterPage+1} de ${pages} · até ${MONSTER_PER} montados por página`;$('mprev').disabled=monsterPage===0;$('mnext').disabled=monsterPage>=pages-1;
   $('title').textContent='Montados'; $('info').textContent=keys.length+' encontrado(s)'+(selG.size?' · '+selG.size+' selecionado(s)':'');
   if(!keys.length){box.innerHTML='<p class="note">Nada montado com esse filtro. Monte no "Abrir montador" e salve.</p>';return}
-  keys.forEach(k=>{ const g=groups[k], w=g.w||1, h=g.h||1, z=Math.max(1,Math.min(3,Math.floor(96/(Math.max(w,h)*32))));
+  keys.slice(monsterPage*MONSTER_PER,(monsterPage+1)*MONSTER_PER).forEach(k=>{ const g=groups[k], w=g.w||1, h=g.h||1, z=Math.max(1,Math.min(3,Math.floor(96/(Math.max(w,h)*32))));
     const d=document.createElement('div'); d.className='mcard'+(selG.has(k)?' sel':''); d.draggable=true;
     const cv=document.createElement('canvas'); cv.width=w*32*z; cv.height=h*32*z; cv.dataset.k=k; cv.dataset.z=z; d.append(cv);
     const st=(g.pronto===false?'rascunho · ':'')+({monstro:'monstro',item:'item',mapa:'objeto do mapa'}[g.tipo||'item']||'item')+(g.pronto===false?'':' ✓');
@@ -627,7 +644,9 @@ function renderMonsters(){
 function setView(v){ view=v; $('tabS').classList.toggle('on',v==='sprites'); $('tabM').classList.toggle('on',v==='monstros');
   $('grid').style.display=v==='sprites'?'':'none'; $('mview').style.display=v==='monstros'?'':'none'; render() }
 $('tabS').onclick=()=>setView('sprites'); $('tabM').onclick=()=>setView('monstros');
-['mtype','mdraft'].forEach(i=>$(i).onchange=renderMonsters); $('msearch').oninput=renderMonsters;
+const resetMonsters=()=>{monsterPage=0;renderMonsters()};
+['mtype','mdraft','mpack'].forEach(i=>$(i).onchange=resetMonsters); $('msearch').oninput=resetMonsters;
+$('mprev').onclick=()=>{if(monsterPage>0){monsterPage--;renderMonsters()}};$('mnext').onclick=()=>{monsterPage++;renderMonsters()};
 setInterval(()=>{ if(view!=='monstros') return; mfr++; document.querySelectorAll('#mgrid canvas').forEach(paintCard) },250);
 
 /* ---------- navegacao, categorias e exportacao ---------- */
