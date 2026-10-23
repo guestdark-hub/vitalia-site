@@ -8,9 +8,12 @@
 :root{--bg:#17181b;--panel:#202126;--ink:#ebe7dc;--muted:#a29d90;--line:#34353b;--accent:#e3a73f}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px "Segoe UI",system-ui,sans-serif}
-.wrap{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+.wrap{display:grid;grid-template-columns:250px 1fr 300px;min-height:100vh}
 aside{border-right:1px solid var(--line);padding:14px;background:var(--panel);position:sticky;top:0;height:100vh;overflow:auto}
-main{padding:14px;min-width:0}
+main{padding:0 14px 14px;min-width:0}
+aside.right{border-right:0;border-left:1px solid var(--line)}
+.topbar{position:sticky;top:0;z-index:30;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);margin-bottom:10px}
+.topbar #asmToggle{font-weight:600}
 h2{font:700 15px Georgia,serif;margin:14px 0 6px;color:var(--accent)}
 input,select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:5px 8px}
 input[type=number]{width:62px}
@@ -59,23 +62,17 @@ button.on{background:var(--accent);color:#000;border-color:var(--accent)}
 #asm.open>div:last-child{position:sticky;top:10px;align-self:start}
 h3.st{font:700 13px Georgia,serif;color:var(--accent);margin:12px 0 6px;border-top:1px solid var(--line);padding-top:8px}
 canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 25%,#1e1f23 0 50%) 0 0/16px 16px;border:1px solid var(--line);border-radius:4px}
-@media(max-width:800px){.wrap{grid-template-columns:1fr}aside{position:static;height:auto}#asm.open{grid-template-columns:1fr}}
+@media(max-width:1000px){.wrap{grid-template-columns:1fr}aside{position:static;height:auto}#asm.open{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <aside>
-  <h2>Navegar <small id="ver" style="font:11px Consolas,monospace;color:var(--muted)">v 22/10 20:50</small></h2>
+  <h2>Navegar <small id="ver" style="font:11px Consolas,monospace;color:var(--muted)">v 22/10 22:40</small></h2>
+  <div class="row"><select id="packsel" style="flex:1"><option value="1">Pack 1 (39.252 sprites)</option><option value="2">Pack 2 - OpenTibia (7.691)</option></select></div>
   <div class="row"><button id="prev">&lt;</button><select id="page"></select><button id="next">&gt;</button></div>
   <div class="row"><input id="goto" type="number" min="1" placeholder="ID" style="width:100px"><button id="gobtn">Ir</button></div>
-  <h2>Categorias</h2>
-  <p class="note">Selecione sprites (clique; Shift+clique pega um intervalo) e salve numa categoria, ou arraste a seleção até uma categoria. Use "&gt;" para subcategorias: <code>Monstros &gt; Dragoes</code>. Botão direito numa sprite ou categoria: excluir.</p>
-  <div class="row"><input id="catname" placeholder="Monstros > Dragoes" style="flex:1"><button id="addcat">Salvar seleção</button></div>
-  <div class="row"><button id="clearsel">Limpar seleção</button><span id="selcount" class="note"></span></div>
-  <div class="cats" id="cats"></div>
-  <h2>Montador de monstros</h2>
-  <p class="note">Passo a passo: formato, as 4 direções, a animação e o corpo. Ele confere o que falta e salva o monstro pronto para o Claude importar no jogo.</p>
-  <div class="row"><button id="asmToggle">Abrir montador</button></div>
+  <p class="note">Selecione sprites (clique; Shift+clique pega um intervalo) e arraste até uma categoria da direita, ou use o botão direito. O montador fica no topo da página.</p>
   <h2>Compartilhar</h2>
   <p class="note" id="savenote">Aberto pelo atalho <b>Abrir site Vitalia</b>, tudo é salvo sozinho em <code>C:\YurOTS_76\site\catalogo_sprites.json</code> (o Claude lê de lá).</p>
   <div id="ghbox" style="display:none">
@@ -84,14 +81,15 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
     <div class="note" id="ghstat"></div>
   </div>
   <div class="row"><button id="export">Exportar</button><button onclick="document.getElementById('imp').click()">Importar</button><input id="imp" type="file" accept=".json" hidden></div>
+  <p class="note">Pack 2: <a href="https://github.com/peonso/opentibia_sprite_pack" target="_blank" style="color:var(--accent)">OpenTibia Sprite Pack</a>, licença CC BY 4.0 (vários autores; dar crédito se usar).</p>
 </aside>
 <main>
-  <div class="row tabs"><button id="tabS" class="on">Sprites</button><button id="tabM">Monstros montados</button></div>
+  <div class="row topbar"><button id="tabS" class="on">Sprites</button><button id="tabM">Montados</button><span id="selcount" class="note"></span><span style="flex:1"></span><button id="asmToggle">Abrir montador</button></div>
   <section id="asm">
     <div>
-      <h3 class="st">1. O monstro</h3>
+      <h3 class="st">1. O que você está montando</h3>
       <div class="row">
-        <label>Tipo <select id="mtipo"><option value="monstro">Monstro (4 direções + corpo)</option><option value="item">Item ou efeito (1 direção)</option></select></label>
+        <label>Tipo <select id="mtipo"><option value="monstro">Monstro (4 direções + corpo)</option><option value="item">Item ou efeito (1 direção)</option><option value="mapa">Objeto do mapa (piso, parede, decoração)</option></select></label>
         <label>Categoria <select id="gcat" style="max-width:200px"></select></label>
         <input id="gname" placeholder="Nome (ex.: Dragon Lord)" style="flex:1;min-width:150px">
       </div>
@@ -101,9 +99,10 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
         <label>Altura <input id="ah" type="number" min="1" max="4" value="2"></label>
         <label>Quadros <input id="af" type="number" min="1" value="3"></label>
         <label>Camadas <select id="alay"><option value="1">1 (normal)</option><option value="2">2 (com máscara de cor)</option></select></label>
+        <label id="varl" style="display:none">Variações <input id="avar" type="number" min="1" max="32" value="1"></label>
         <label>Velocidade <input id="asp" type="number" min="50" max="2000" step="50" value="200"> ms</label>
       </div>
-      <p class="note">Largura e altura em tiles de 32x32 (dragão = 2x2). Quadros = passos da animação andando (o 1º é o monstro parado). Máscara de cor só existe em outfits de jogador; monstros usam 1 camada.</p>
+      <p class="note" id="asmhint"></p>
       <h3 class="st">3. Sprites da animação</h3>
       <div class="row">
         <label>1ª sprite <input id="fid" type="number" min="1" style="width:90px"></label>
@@ -111,17 +110,17 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
         <button id="fill">Preencher na ordem do Tibia</button>
       </div>
       <div class="row note">Ou clique num quadrado e depois numa sprite da lista abaixo (o próximo quadrado é escolhido sozinho). Clique direito limpa.</div>
-      <div class="row" id="dirrow"><b>Direção:</b><span id="dirtabs" class="row" style="margin:0"></span></div>
+      <div class="row" id="dirrow"><b id="dirlab">Direção:</b><span id="dirtabs" class="row" style="margin:0"></span></div>
       <div class="frames" id="frames"></div>
       <div id="corpo">
-        <h3 class="st">4. Corpo (cadáver)</h3>
-        <div class="row">
+        <h3 class="st">4. Corpo (cadáver) <label style="font:13px 'Segoe UI';color:var(--ink)"><input id="hascorpo" type="checkbox" checked> tem corpo</label></h3>
+        <div id="corpobody"><div class="row">
           <label>Largura <input id="cw" type="number" min="1" max="4" value="2"></label>
           <label>Altura <input id="ch" type="number" min="1" max="4" value="2"></label>
           <label>1ª sprite <input id="cid" type="number" min="1" style="width:90px"></label>
           <button id="cfill">Preencher</button>
         </div>
-        <div class="frames" id="cframes"></div>
+        <div class="frames" id="cframes"></div></div>
       </div>
       <h3 class="st">Conferência</h3>
       <div id="req" class="note"></div>
@@ -138,18 +137,32 @@ canvas{image-rendering:pixelated;background:repeating-conic-gradient(#2a2b30 0 2
   <div class="grid" id="grid"></div>
   <div id="mview" style="display:none">
     <div class="row"><input id="msearch" placeholder="Buscar por nome ou categoria" style="flex:1;min-width:180px">
-      <select id="mtype"><option value="monstro" selected>Só monstros</option><option value="item">Só itens e efeitos</option><option value="todos">Tudo montado</option></select>
+      <select id="mtype"><option value="monstro" selected>Só monstros</option><option value="item">Só itens e efeitos</option><option value="mapa">Só objetos do mapa</option><option value="todos">Tudo montado</option></select>
       <label><input id="mdraft" type="checkbox" checked> mostrar rascunhos</label></div>
-    <p class="note">Arraste um card para uma categoria da esquerda para mudar de lugar. Ctrl+clique seleciona vários. Botão direito: excluir.</p>
+    <p class="note">Arraste um card para uma categoria da direita para mudar de lugar. Ctrl+clique seleciona vários. Botão direito: excluir.</p>
     <div class="mgrid" id="mgrid"></div>
   </div>
 </main>
+<aside class="right">
+  <h2>Categorias</h2>
+  <div class="row"><input id="catsearch" placeholder="Buscar categoria..." style="flex:1"></div>
+  <div class="row"><button id="collapseAll">Recolher tudo</button><button id="expandAll">Expandir tudo</button></div>
+  <div class="row"><input id="catname" placeholder="Pack 1 > Monstros > Dragoes" style="flex:1"><button id="addcat">Salvar seleção</button></div>
+  <div class="row"><button id="clearsel">Limpar seleção</button></div>
+  <div class="cats" id="cats"></div>
+</aside>
 </div>
 <div id="toast"></div>
 <div id="ctx"></div>
 <div id="pick"></div>
 <script>
-const N=39252, PER=400, COLS=20, PAGES=Math.ceil(N/PER);
+const PER=400, COLS=20;
+// Pack 1 = ids 1..39252 (sheets/sNNN.png); Pack 2 = OpenTibia Sprite Pack, ids 100001.. (sheets2/tNNN.png)
+const PACKS={1:{n:39252,off:0,dir:'sheets',pre:'s',nome:'Pack 1'},2:{n:7691,off:100000,dir:'sheets2',pre:'t',nome:'Pack 2'}};
+let pack=1; try{pack=+localStorage.getItem('vit-pack')||1}catch(e){} if(!PACKS[pack]) pack=1;
+const N=()=>PACKS[pack].n, PAGES=()=>Math.ceil(N()/PER);
+const packOf=id=>id>=100000?2:1, localId=id=>id-PACKS[packOf(id)].off, globalId=l=>PACKS[pack].off+l;
+const spriteLabel=id=>(packOf(id)===2?'Pack 2 ':'')+'sprite #'+localId(id);
 const $=id=>document.getElementById(id);
 let cats={}, groups={};
 try{cats=JSON.parse(localStorage.getItem('vit-cats')||'{}')}catch(e){}
@@ -166,12 +179,17 @@ async function ghLoad(){
   const h={Accept:'application/vnd.github+json'}; if(ghToken) h.Authorization='Bearer '+ghToken;
   const r=await fetch(ghUrl()+'?t='+Date.now(),{headers:h,cache:'no-store'}); if(!r.ok) return null;
   const j=await r.json(); ghSha=j.sha;
+  if(!j.content){ // arquivo maior que 1 MB: a API so entrega o conteudo no modo "raw"
+    const h2={Accept:'application/vnd.github.raw'}; if(ghToken) h2.Authorization='Bearer '+ghToken;
+    const r2=await fetch(ghUrl()+'?t='+Date.now(),{headers:h2,cache:'no-store'}); if(!r2.ok) return null;
+    return JSON.parse(await r2.text());
+  }
   return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')),c=>c.charCodeAt(0))));
 }
 async function ghSave(){
   if(!ghToken){ghStatus('Sem token: salvo só neste navegador');return}
   for(let tent=0;tent<3;tent++){
-    const body=JSON.stringify({categorias:cats,agrupamentos:groups},null,1), nP=pending.length;
+    const body=JSON.stringify({categorias:cats,agrupamentos:groups}), nP=pending.length;
     const r=await fetch(ghUrl(),{method:'PUT',headers:{Authorization:'Bearer '+ghToken,Accept:'application/vnd.github+json'},
       body:JSON.stringify({message:'catalogo: atualizado pelo site',content:b64(body),sha:ghSha||undefined})});
     if(r.ok){ghSha=(await r.json()).content.sha;pending.splice(0,nP);ghStatus('Salvo no GitHub '+new Date().toLocaleTimeString());return}
@@ -182,12 +200,12 @@ async function ghSave(){
 function ghStatus(t){const e=$('ghstat'); if(e) e.textContent=t}
 function save(){try{localStorage.setItem('vit-cats',JSON.stringify(cats));localStorage.setItem('vit-groups',JSON.stringify(groups))}catch(e){}
   if(GH){clearTimeout(ghTimer);ghStatus('Salvando...');ghTimer=setTimeout(ghSave,1200);return}
-  if(HTTP) fetch('salvar',{method:'POST',body:JSON.stringify({categorias:cats,agrupamentos:groups},null,1)}).catch(()=>{})}
+  if(HTTP) fetch('salvar',{method:'POST',body:JSON.stringify({categorias:cats,agrupamentos:groups})}).catch(()=>{})}
 function merge(j){const c=j.categorias||j, g=j.agrupamentos||{};let n=0;
   for(const k in c) if(Array.isArray(c[k])){const before=(cats[k]||[]).length;cats[k]=[...new Set([...(cats[k]||[]),...c[k]])];n+=cats[k].length-before}
   for(const k in g) if(!groups[k]){groups[k]=g[k];n++} return n}
 function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',1500)}
-function sheetPos(id){const s=Math.floor((id-1)/PER),k=(id-1)%PER;return {url:`sheets/s${String(s).padStart(3,'0')}.png`,x:(k%COLS)*32,y:Math.floor(k/COLS)*32}}
+function sheetPos(id){const P=PACKS[packOf(id)], l=localId(id), s=Math.floor((l-1)/PER),k=(l-1)%PER;return {url:`${P.dir}/${P.pre}${String(s).padStart(3,'0')}.png`,x:(k%COLS)*32,y:Math.floor(k/COLS)*32}}
 function bg(el,id){const p=sheetPos(id);el.style.background=`url(${p.url}) -${p.x}px -${p.y}px`}
 function catOf(id){for(const k in cats) if(cats[k].includes(id)) return k; return null}
 
@@ -195,12 +213,12 @@ function catOf(id){for(const k in cats) if(cats[k].includes(id)) return k; retur
 function cell(id){
   const d=document.createElement('div'); d.className='cell'+(sel.has(id)?' sel':'');
   const im=document.createElement('div'); im.className='s'; bg(im,id); d.append(im);
-  const sp=document.createElement('span'); sp.textContent=id; d.append(sp);
+  const sp=document.createElement('span'); sp.textContent=localId(id); d.append(sp); d.title=spriteLabel(id);
   const c=catOf(id); if(c){const i=document.createElement('i');i.title=c;d.append(i);d.title=c}
   d.onclick=ev=>{
     if(asmOpen && act){ setSlot(id); return }
     if(ev.shiftKey&&lastClick){const a=Math.min(lastClick,id),b=Math.max(lastClick,id);for(let x=a;x<=b;x++)sel.add(x)}
-    else{ if(sel.has(id))sel.delete(id); else sel.add(id); try{navigator.clipboard.writeText('sprite #'+id).catch(()=>{})}catch(e){} toast('sprite #'+id+' copiado')}
+    else{ if(sel.has(id))sel.delete(id); else sel.add(id); try{navigator.clipboard.writeText(spriteLabel(id)).catch(()=>{})}catch(e){} toast(spriteLabel(id)+' copiado')}
     lastClick=id; render();
   };
   d.draggable=true;
@@ -216,30 +234,38 @@ function render(){
     $('title').textContent=filter; $('info').textContent=ids.length+' sprites';
     ids.forEach(id=>g.append(cell(id)));
   } else {
-    const a=page*PER+1,b=Math.min(N,(page+1)*PER);
-    $('title').textContent=`Sprites ${a} a ${b}`; $('info').textContent=`página ${page+1} de ${PAGES}`;
-    for(let id=a;id<=b;id++) g.append(cell(id));
+    const a=page*PER+1,b=Math.min(N(),(page+1)*PER), off=PACKS[pack].off;
+    $('title').textContent=`${PACKS[pack].nome}: sprites ${a} a ${b}`; $('info').textContent=`página ${page+1} de ${PAGES()}`;
+    for(let id=a;id<=b;id++) g.append(cell(off+id));
   }
   $('page').value=page; $('selcount').textContent=sel.size?sel.size+' selecionada(s)':'';
   renderCats();
 }
 let expanded=new Set(); try{expanded=new Set(JSON.parse(localStorage.getItem('vit-open')||'[]'))}catch(e){}
+function saveOpen(){ try{localStorage.setItem('vit-open',JSON.stringify([...expanded]))}catch(e){} }
 function toggleOpen(k){ expanded.has(k)?expanded.delete(k):expanded.add(k); try{localStorage.setItem('vit-open',JSON.stringify([...expanded]))}catch(e){} renderCats() }
 function renderCats(){
   if(typeof asmOpen!=='undefined'&&asmOpen) fillCatSelect();
   const box=$('cats'); box.replaceChildren();
-  const all=document.createElement('div'); all.innerHTML='<span>Todas as sprites</span>'; all.className=filter?'':'on'; all.onclick=()=>{filter=null;if(view!=='sprites')setView('sprites');else render()}; dropTarget(all,''); box.append(all);
+  const all=document.createElement('div'); all.innerHTML='<span>Todas as sprites ('+PACKS[pack].nome+')</span>'; all.className=filter?'':'on'; all.onclick=()=>{filter=null;if(view!=='sprites')setView('sprites');else render()}; dropTarget(all,''); box.append(all);
   // pastas: toda categoria pai aparece, mesmo sem sprites proprias
   const base=[...Object.keys(cats),...Object.keys(groups)], set=new Set(base);
   base.forEach(k=>{const p=k.split(' > ');for(let i=1;i<p.length;i++) set.add(p.slice(0,i).join(' > '))});
   const keys=[...set].sort((a,b)=>a.localeCompare(b));
   const kids=k=>keys.some(x=>x.startsWith(k+' > '));
-  const visible=k=>{const p=k.split(' > ');for(let i=1;i<p.length;i++) if(!expanded.has(p.slice(0,i).join(' > '))) return false; return true};
+  const q=($('catsearch').value||'').trim().toLowerCase();
+  let shown=null;
+  if(q){ // busca: mostra o que combina, as pastas acima e o que esta dentro
+    const hit=keys.filter(k=>k.toLowerCase().includes(q)); shown=new Set();
+    hit.forEach(k=>{const p=k.split(' > ');for(let i=1;i<=p.length;i++) shown.add(p.slice(0,i).join(' > '))});
+    keys.forEach(k=>{ if(hit.some(h=>k.startsWith(h+' > '))) shown.add(k) });
+  }
+  const visible=k=>{ if(shown) return shown.has(k); const p=k.split(' > ');for(let i=1;i<p.length;i++) if(!expanded.has(p.slice(0,i).join(' > '))) return false; return true};
   if(filter){const p=filter.split(' > ');for(let i=1;i<p.length;i++) expanded.add(p.slice(0,i).join(' > '))}
   keys.forEach(k=>{
     if(!visible(k)) return;
     const depth=k.split(' > ').length-1, label=leaf(k).replace(/</g,'&lt;'), hasK=kids(k), pad=depth*12;
-    const arrow=hasK?`<b class="arr" data-k="">${expanded.has(k)?'▾':'▸'}</b>`:'<b class="arr"></b>';
+    const arrow=hasK?`<b class="arr" data-k="">${(shown||expanded.has(k))?'▾':'▸'}</b>`:'<b class="arr"></b>';
     if(cats[k]||(!groups[k])){
       const d=document.createElement('div'); d.className=filter===k?'on':'';
       const n=cats[k]?cats[k].length:'';
@@ -259,41 +285,46 @@ function renderCats(){
   });
 }
 
-/* ---------- montador de monstros ---------- */
-// monstro salvo em groups[categoria > nome] = {tipo,w,h,frames,layers,speed,dirs[4][quadro][linha][col],mask[4][...],corpo:{w,h,slots[linha][col]},pronto}
+/* ---------- montador (monstros, itens e objetos do mapa) ---------- */
+// salvo em groups[categoria > nome] = {tipo:'monstro'|'item'|'mapa',w,h,frames,layers,speed,dirs[n][quadro][linha][col],mask,corpo,variacoes,pronto}
+// monstro: dirs[0..3] = norte, leste, sul, oeste; item: so dirs[2]; mapa: dirs[0..V-1] = variacoes (pisos, paredes, bordas...)
 const DIRN=['Norte','Leste','Sul','Oeste'];
 let asmOpen=false, act=null, dirs=[[],[],[],[]], mask=[[],[],[],[]], corpo=[], dir=2, playing=true, fr=0, timer=null;
 const imgs={};
 function img(id){const p=sheetPos(id); if(!imgs[p.url]){const i=new Image();i.src=p.url;i.onload=draw;imgs[p.url]=i} return {im:imgs[p.url],x:p.x,y:p.y}}
 const num=(id,d)=>Math.max(1,+$(id).value||d);
-function dims(){return {w:num('aw',1),h:num('ah',1),f:num('af',1),L:+$('alay').value||1,mon:$('mtipo').value==='monstro',cw:num('cw',1),chh:num('ch',1)}}
+function dims(){const t=$('mtipo').value;
+  return {w:num('aw',1),h:num('ah',1),f:num('af',1),L:+$('alay').value||1,tipo:t,mon:t==='monstro',mapa:t==='mapa',
+    V:t==='mapa'?Math.min(32,num('avar',1)):1,corpo:t==='monstro'&&$('hascorpo').checked,cw:num('cw',1),chh:num('ch',1)}}
 function grid(h,w,old){const n=[];for(let r=0;r<h;r++){n.push([]);for(let c=0;c<w;c++) n[r].push(((old||[])[r]||[])[c]||0)}return n}
 function fit(old){const {w,h,f}=dims();const n=[];for(let a=0;a<f;a++) n.push(grid(h,w,(old||[])[a]));return n}
-function dirList(){return dims().mon?[0,1,2,3]:[2]}
+function dirList(){const d=dims(); return d.mon?[0,1,2,3]:(d.mapa?[...Array(d.V).keys()]:[2])}
+function dirName(d){const x=dims(); return x.mon?DIRN[d]:(x.mapa?'Variação '+(d+1):'')}
 function filled(g){return g.flat(2).filter(x=>x).length}
 function missing(){
-  const {w,h,f,L,mon}=dims(), out=[]; let tot=0, ok=0;
+  const {w,h,f,L,corpo:hasC}=dims(), out=[]; let tot=0, ok=0;
   for(const d of dirList()) for(let a=0;a<f;a++){
-    const n=filled(dirs[d][a]?[dirs[d][a]]:[]); tot+=w*h; ok+=n; if(n<w*h) out.push((mon?DIRN[d]+' ':'')+'quadro '+(a+1)+': falta '+(w*h-n));
-    if(L===2){const m=filled(mask[d][a]?[mask[d][a]]:[]); tot+=w*h; ok+=m; if(m<w*h) out.push((mon?DIRN[d]+' ':'')+'máscara '+(a+1)+': falta '+(w*h-m))}
+    const pre=dirName(d)?dirName(d)+' ':'';
+    const n=filled(dirs[d][a]?[dirs[d][a]]:[]); tot+=w*h; ok+=n; if(n<w*h) out.push(pre+'quadro '+(a+1)+': falta '+(w*h-n));
+    if(L===2){const m=filled(mask[d][a]?[mask[d][a]]:[]); tot+=w*h; ok+=m; if(m<w*h) out.push(pre+'máscara '+(a+1)+': falta '+(w*h-m))}
   }
-  if(mon){const {cw,chh}=dims(), n=filled([corpo]); tot+=cw*chh; ok+=n; if(n<cw*chh) out.push('corpo: falta '+(cw*chh-n))}
+  if(hasC){const {cw,chh}=dims(), n=filled([corpo]); tot+=cw*chh; ok+=n; if(n<cw*chh) out.push('corpo: falta '+(cw*chh-n))}
   return {out,tot,ok};
 }
 function renderReq(){
   const m=missing(), box=$('req');
   box.innerHTML = m.out.length ? `<b style="color:var(--accent)">${m.ok} de ${m.tot} sprites.</b> Falta: `+m.out.slice(0,8).join(' · ')+(m.out.length>8?' ...':'')
     : `<b style="color:#7fd17f">Completo: ${m.tot} sprites. Pronto para o Claude importar.</b>`;
-  $('gsave').textContent = m.out.length ? 'Salvar rascunho' : 'Salvar monstro pronto';
+  $('gsave').textContent = m.out.length ? 'Salvar rascunho' : 'Salvar pronto';
 }
 function setDir(d){dir=d; act=null; refresh()}
-function buildDirTabs(){const box=$('dirtabs'); box.replaceChildren();
-  DIRN.forEach((nm,d)=>{const {w,h,f}=dims(); const done=filled(dirs[d])>=w*h*f;
-    const b=document.createElement('button'); b.textContent=nm+(done?' ✓':''); if(d===dir) b.className='on'; b.onclick=()=>setDir(d); box.append(b)});
+function buildDirTabs(){const box=$('dirtabs'); box.replaceChildren(); const {w,h,f}=dims();
+  dirList().forEach(d=>{const done=filled(dirs[d]||[])>=w*h*f;
+    const b=document.createElement('button'); b.textContent=dirName(d).replace('Variação ','Var ')+(done?' ✓':''); if(d===dir) b.className='on'; b.onclick=()=>setDir(d); box.append(b)});
 }
 function slotEl(get,setAct,isAct,clear){
   const s=document.createElement('div'); s.className='slot'+(isAct?' act':''); const id=get();
-  if(id){const i=document.createElement('div');bg(i,id);s.append(i);s.title='sprite #'+id} else s.textContent='+';
+  if(id){const i=document.createElement('div');bg(i,id);s.append(i);s.title=spriteLabel(id)} else s.textContent='+';
   s.onclick=setAct; s.oncontextmenu=ev=>{ev.preventDefault();clear();refresh()}; return s;
 }
 function block(title,w,h,arr,kind,a){
@@ -304,18 +335,23 @@ function block(title,w,h,arr,kind,a){
   fd.append(g); return fd;
 }
 function buildFrames(){
-  const {w,h,f,L,mon,cw,chh}=dims(), box=$('frames'); box.replaceChildren();
+  const {w,h,f,L,mon,corpo:hasC,cw,chh}=dims(), box=$('frames'); box.replaceChildren();
   for(let a=0;a<f;a++){
-    box.append(block(a===0?'Quadro 1 (parado)':'Quadro '+(a+1),w,h,dirs[dir][a],'anim',a));
+    box.append(block(a===0?(mon?'Quadro 1 (parado)':'Quadro 1'):'Quadro '+(a+1),w,h,dirs[dir][a],'anim',a));
     if(L===2) box.append(block('Máscara '+(a+1),w,h,mask[dir][a],'mask',a));
   }
-  const cb=$('cframes'); cb.replaceChildren(); if(mon) cb.append(block('Corpo',cw,chh,corpo,'corpo',0));
+  const cb=$('cframes'); cb.replaceChildren(); if(hasC) cb.append(block('Corpo',cw,chh,corpo,'corpo',0));
 }
 function refresh(){
-  const {mon}=dims(); if(!mon) dir=2;
-  for(let d=0;d<4;d++){dirs[d]=fit(dirs[d]); mask[d]=fit(mask[d])}
-  corpo=grid(dims().chh,dims().cw,corpo);
-  $('dirrow').style.display=mon?'':'none'; $('fdl').style.display=mon?'':'none'; $('corpo').style.display=mon?'':'none';
+  const d=dims(), list=dirList(); if(!list.includes(dir)) dir=list.includes(2)?2:list[0];
+  for(const k of new Set([0,1,2,3,...list])){dirs[k]=fit(dirs[k]); mask[k]=fit(mask[k])}
+  corpo=grid(d.chh,d.cw,corpo);
+  $('dirrow').style.display=(d.mon||d.mapa)?'':'none'; $('dirlab').textContent=d.mapa?'Variação:':'Direção:';
+  $('fdl').style.display=d.mon?'':'none'; $('varl').style.display=d.mapa?'':'none';
+  $('corpo').style.display=d.mon?'':'none'; $('corpobody').style.display=d.corpo?'':'none';
+  $('asmhint').textContent=d.mon?'Largura e altura em tiles de 32x32 (dragão = 2x2). Quadros = passos da animação andando (o 1º é o monstro parado). Máscara de cor só existe em outfits de jogador; monstros usam 1 camada.'
+    :d.mapa?'Objetos do mapa: pisos, paredes, bordas, árvores, portas... Variações = quantas versões o objeto tem (ex.: piso com 4 desenhos, parede com 2 lados). Quadros = animação (água, fogo).'
+    :'Itens e efeitos: 1 direção. Quadros = animação (ex.: runa brilhando, efeito de magia).';
   buildDirTabs(); buildFrames(); renderReq(); draw();
 }
 function nextAct(){
@@ -330,43 +366,48 @@ function setSlot(id){
   if(!act) return; const t=act.kind==='corpo'?corpo:(act.kind==='mask'?mask:dirs)[dir][act.f];
   t[act.r][act.c]=id; nextAct(); refresh();
 }
+// ordem do Tibia: indice = ((quadro*D + direcao/variacao)*camadas + camada)*w*h + linha*w + coluna
 function fillTibia(){
-  const {w,h,f,L,mon}=dims(), start=+$('fid').value; if(!start){toast('Informe a 1ª sprite');return}
-  const D=mon?4:1, list=mon?($('fd').value==='all'?[0,1,2,3]:[+$('fd').value]):[2];
-  for(const d of list){ const dx=mon?d:0;
+  const {w,h,f,L,mon,mapa,V,corpo:hasC}=dims(), start=+$('fid').value; if(!start){toast('Informe a 1ª sprite');return}
+  const first=globalId(start);
+  const D=mon?4:(mapa?V:1), list=mon?($('fd').value==='all'?[0,1,2,3]:[+$('fd').value]):dirList();
+  for(const d of list){ const dx=(mon||mapa)?d:0;
     for(let a=0;a<f;a++) for(let l=0;l<L;l++){
-      const base=start+((a*D+dx)*L+l)*w*h, t=(l?mask:dirs)[d][a];
+      const base=first+((a*D+dx)*L+l)*w*h, t=(l?mask:dirs)[d][a];
       for(let hh=0;hh<h;hh++) for(let ww=0;ww<w;ww++) t[h-1-hh][w-1-ww]=base+hh*w+ww;
     }
   }
-  const nx=start+f*D*L*w*h; if(mon&&!+$('cid').value) $('cid').value=nx;
-  refresh(); toast(list.length>1?'4 direções preenchidas':'Preenchido');
+  const nx=start+f*D*L*w*h; if(hasC&&!+$('cid').value) $('cid').value=nx;
+  refresh(); toast(list.length>1?list.length+(mon?' direções preenchidas':' variações preenchidas'):'Preenchido');
 }
 function fillCorpo(){const {cw,chh}=dims(), s=+$('cid').value; if(!s){toast('Informe a 1ª sprite do corpo');return}
-  for(let hh=0;hh<chh;hh++) for(let ww=0;ww<cw;ww++) corpo[chh-1-hh][cw-1-ww]=s+hh*cw+ww; refresh()}
+  const g=globalId(s); for(let hh=0;hh<chh;hh++) for(let ww=0;ww<cw;ww++) corpo[chh-1-hh][cw-1-ww]=g+hh*cw+ww; refresh()}
 function drawTiles(ctx,g,w,h,z,ox,oy){
   for(let r=0;r<h;r++) for(let c=0;c<w;c++){const id=(g[r]||[])[c]; if(!id) continue;
     const s=img(id); if(s.im.complete) ctx.drawImage(s.im,s.x,s.y,32,32,ox+c*32*z,oy+r*32*z,32*z,32*z)}
 }
-function layout(){const {w,h,mon,cw,chh}=dims(), z=+$('zoom').value, ds=dirList(), gap=8*z;
-  const W=ds.length*w*32*z+(ds.length-1)*gap+(mon?gap+cw*32*z:0), H=Math.max(h,mon?chh:0)*32*z; return {z,ds,gap,W,H}}
+function layout(){const {w,h,corpo:hasC,cw,chh}=dims(), z=+$('zoom').value, ds=dirList().slice(0,8), gap=8*z;
+  const W=ds.length*w*32*z+(ds.length-1)*gap+(hasC?gap+cw*32*z:0), H=Math.max(h,hasC?chh:0)*32*z; return {z,ds,gap,W,H}}
 function paint(ctx,a){
-  const {w,h,mon,cw,chh}=dims(), {z,ds,gap,W,H}=layout(); ctx.clearRect(0,0,W,H);
-  ds.forEach((d,i)=>drawTiles(ctx,dirs[d][a]||[],w,h,z,i*(w*32*z+gap),H-h*32*z));
-  if(mon) drawTiles(ctx,corpo,cw,chh,z,ds.length*(w*32*z+gap),H-chh*32*z);
+  const {w,h,corpo:hasC,cw,chh}=dims(), {z,ds,gap,W,H}=layout(); ctx.clearRect(0,0,W,H);
+  ds.forEach((d,i)=>drawTiles(ctx,(dirs[d]||[])[a]||[],w,h,z,i*(w*32*z+gap),H-h*32*z));
+  if(hasC) drawTiles(ctx,corpo,cw,chh,z,ds.length*(w*32*z+gap),H-chh*32*z);
 }
 function draw(){
   const cv=$('cv'), L=layout(); cv.width=L.W; cv.height=L.H; const ctx=cv.getContext('2d'); ctx.imageSmoothingEnabled=false;
-  paint(ctx,fr%dims().f); $('cvlab').textContent=dims().mon?'Norte · Leste · Sul · Oeste · Corpo':'';
+  const d=dims(); paint(ctx,fr%d.f);
+  $('cvlab').textContent=d.mon?'Norte · Leste · Sul · Oeste'+(d.corpo?' · Corpo':''):(d.mapa?(d.V>8?'Variações 1 a 8 de '+d.V:d.V+' variação(ões)'):'');
 }
 function tick(){ if(playing){fr=(fr+1)%dims().f; draw()} timer=setTimeout(tick,+$('asp').value||200) }
 function loadGroup(k){
-  const g=groups[k];
-  $('mtipo').value=g.tipo||(g.dirs&&g.dirs.filter(x=>x&&x.length).length>1?'monstro':'item');
+  const g=groups[k], tipo=g.tipo||(g.dirs&&g.dirs.filter(x=>x&&x.length).length>1?'monstro':'item');
+  $('mtipo').value=tipo;
   $('aw').value=g.w; $('ah').value=g.h; $('af').value=g.frames; $('asp').value=g.speed||200; $('alay').value=g.layers||1;
+  $('avar').value=tipo==='mapa'?(g.variacoes||(g.dirs||[]).length||1):1;
+  $('hascorpo').checked=!(g.semCorpo||(tipo==='monstro'&&!g.corpo));
   const D=g.dirs||[[],[],g.slots||[],[]]; dirs=JSON.parse(JSON.stringify(D)); mask=JSON.parse(JSON.stringify(g.mask||[[],[],[],[]]));
   corpo=JSON.parse(JSON.stringify((g.corpo||{}).slots||[])); $('cw').value=(g.corpo||{}).w||2; $('ch').value=(g.corpo||{}).h||2;
-  const parts=k.split(' > '), nm=parts.pop(); fillCatSelect(parts.join(' > ')); $('gname').value=nm; dir=2;
+  const parts=k.split(' > '), nm=parts.pop(); fillCatSelect(parts.join(' > ')); $('gname').value=nm; dir=tipo==='mapa'?0:2;
   if(!asmOpen) toggleAsm(); refresh();
 }
 function fillCatSelect(pick){
@@ -377,9 +418,9 @@ function fillCatSelect(pick){
   add('','(sem categoria)'); [...opts].sort().forEach(k=>add(k,k)); add('__nova','+ nova categoria...');
   if([...s.options].some(o=>o.value===cur)) s.value=cur;
 }
-function toggleAsm(){asmOpen=!asmOpen; $('asm').classList.toggle('open',asmOpen); $('asmToggle').textContent=asmOpen?'Fechar montador':'Abrir montador'; $('asmToggle').classList.toggle('on',asmOpen); if(asmOpen){fillCatSelect(); refresh()}}
+function toggleAsm(){asmOpen=!asmOpen; $('asm').classList.toggle('open',asmOpen); $('asmToggle').textContent=asmOpen?'Fechar montador':'Abrir montador'; $('asmToggle').classList.toggle('on',asmOpen); if(asmOpen){fillCatSelect(); refresh(); if(view!=='sprites') setView('sprites'); scrollTo(0,0)}}
 $('asmToggle').onclick=toggleAsm;
-['aw','ah','af','alay','mtipo','cw','ch'].forEach(i=>$(i).onchange=refresh);
+['aw','ah','af','alay','mtipo','cw','ch','avar','hascorpo'].forEach(i=>$(i).onchange=refresh);
 $('zoom').onchange=draw;
 $('fill').onclick=fillTibia; $('cfill').onclick=fillCorpo;
 $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pausar':'Animar'};
@@ -388,16 +429,17 @@ $('gcat').onchange=()=>{ if($('gcat').value==='__nova'){const n=(prompt('Nome da
   if(n){apply(()=>{if(!cats[n])cats[n]=[]});fillCatSelect(n)} else fillCatSelect('')} };
 $('gsave').onclick=()=>{
   const nm=$('gname').value.split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
-  if(!nm){toast('Dê um nome ao monstro');return}
+  if(!nm){toast('Dê um nome');return}
   const cat=$('gcat').value==='__nova'?'':$('gcat').value, name=cat?cat+' > '+nm:nm;
-  refresh(); const d=dims(), m=missing();
-  const g={tipo:d.mon?'monstro':'item',w:d.w,h:d.h,frames:d.f,layers:d.L,speed:+$('asp').value||200,
-    dirs:JSON.parse(JSON.stringify(d.mon?dirs:[[],[],dirs[2],[]])),pronto:!m.out.length};
-  if(d.L===2) g.mask=JSON.parse(JSON.stringify(d.mon?mask:[[],[],mask[2],[]]));
-  if(d.mon) g.corpo={w:d.cw,h:d.chh,slots:JSON.parse(JSON.stringify(corpo))};
-  g.slots=g.dirs[2];
+  refresh(); const d=dims(), m=missing(), cp=x=>JSON.parse(JSON.stringify(x));
+  const pick=arr=>d.mon?cp(arr.slice(0,4)):(d.mapa?cp(arr.slice(0,d.V)):[[],[],cp(arr[2]),[]]);
+  const g={tipo:d.tipo,w:d.w,h:d.h,frames:d.f,layers:d.L,speed:+$('asp').value||200,dirs:pick(dirs),pronto:!m.out.length};
+  if(d.mapa) g.variacoes=d.V;
+  if(d.L===2) g.mask=pick(mask);
+  if(d.corpo) g.corpo={w:d.cw,h:d.chh,slots:cp(corpo)}; else if(d.mon) g.semCorpo=true;
+  g.slots=d.mapa?g.dirs[0]:g.dirs[2];
   apply(()=>{groups[name]=g}); fillCatSelect(cat);
-  toast((g.pronto?'Monstro pronto salvo: ':'Rascunho salvo: ')+name);
+  toast((g.pronto?'Salvo pronto: ':'Rascunho salvo: ')+name);
 };
 
 /* ---------- GIF (codificador simples, sem bibliotecas) ---------- */
@@ -552,7 +594,7 @@ addEventListener('mousedown',e=>{const b=$('pick'); if(b.style.display!=='none'&
 
 /* ---------- aba de monstros montados ---------- */
 let view='sprites', selG=new Set(), mfr=0;
-function groupFrame(g){ const d=g.dirs||[[],[],g.slots||[],[]]; for(const i of [2,1,0,3]) if((d[i]||[]).some(fm=>(fm||[]).some(r=>(r||[]).some(x=>x)))) return d[i]; return [] }
+function groupFrame(g){ const d=g.dirs||[[],[],g.slots||[],[]]; for(const i of (g.tipo==='mapa'?[...d.keys()]:[2,1,0,3])) if((d[i]||[]).some(fm=>(fm||[]).some(r=>(r||[]).some(x=>x)))) return d[i]; return [] }
 function paintCard(cv){
   const g=groups[cv.dataset.k]; if(!g) return; const fr=groupFrame(g), f=Math.max(1,fr.length), a=mfr%f, z=+cv.dataset.z, ctx=cv.getContext('2d');
   ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,cv.width,cv.height);
@@ -562,18 +604,18 @@ function paintCard(cv){
 function monsterKeys(){
   const t=$('mtype').value, q=$('msearch').value.trim().toLowerCase();
   return Object.keys(groups).filter(k=>{ const g=groups[k], tipo=g.tipo||'item';
-    if(t==='monstro'&&tipo!=='monstro') return false; if(t==='item'&&tipo!=='item') return false;
+    if(t!=='todos'&&tipo!==t) return false;
     if(!$('mdraft').checked&&g.pronto===false) return false;
     return !q||k.toLowerCase().includes(q) }).sort((a,b)=>leaf(a).localeCompare(leaf(b)));
 }
 function renderMonsters(){
   const box=$('mgrid'); box.replaceChildren(); const keys=monsterKeys();
-  $('title').textContent='Monstros montados'; $('info').textContent=keys.length+' encontrado(s)'+(selG.size?' · '+selG.size+' selecionado(s)':'');
+  $('title').textContent='Montados'; $('info').textContent=keys.length+' encontrado(s)'+(selG.size?' · '+selG.size+' selecionado(s)':'');
   if(!keys.length){box.innerHTML='<p class="note">Nada montado com esse filtro. Monte no "Abrir montador" e salve.</p>';return}
   keys.forEach(k=>{ const g=groups[k], w=g.w||1, h=g.h||1, z=Math.max(1,Math.min(3,Math.floor(96/(Math.max(w,h)*32))));
     const d=document.createElement('div'); d.className='mcard'+(selG.has(k)?' sel':''); d.draggable=true;
     const cv=document.createElement('canvas'); cv.width=w*32*z; cv.height=h*32*z; cv.dataset.k=k; cv.dataset.z=z; d.append(cv);
-    const st=(g.tipo||'item')==='monstro'?(g.pronto===false?'rascunho':'monstro ✓'):'item';
+    const st=(g.pronto===false?'rascunho · ':'')+({monstro:'monstro',item:'item',mapa:'objeto do mapa'}[g.tipo||'item']||'item')+(g.pronto===false?'':' ✓');
     d.insertAdjacentHTML('beforeend',`<b>${leaf(k).replace(/</g,'&lt;')}</b><small>${(parentOf(k)||'(sem categoria)').replace(/</g,'&lt;')}</small><em>${st}</em>`);
     d.title=k+'\nClique: abrir no montador · Ctrl/Shift+clique: selecionar vários · Arraste para uma categoria · Botão direito: excluir';
     d.onclick=ev=>{ if(ev.ctrlKey||ev.metaKey||ev.shiftKey){ selG.has(k)?selG.delete(k):selG.add(k); renderMonsters(); return } loadGroup(k); scrollTo(0,0) };
@@ -589,18 +631,23 @@ $('tabS').onclick=()=>setView('sprites'); $('tabM').onclick=()=>setView('monstro
 setInterval(()=>{ if(view!=='monstros') return; mfr++; document.querySelectorAll('#mgrid canvas').forEach(paintCard) },250);
 
 /* ---------- navegacao, categorias e exportacao ---------- */
-for(let p=0;p<PAGES;p++){const o=document.createElement('option');o.value=p;o.textContent=`${p*PER+1}-${Math.min(N,(p+1)*PER)}`;$('page').append(o)}
+$('catsearch').oninput=()=>renderCats();
+$('collapseAll').onclick=()=>{ expanded.clear(); saveOpen(); $('catsearch').value=''; renderCats() };
+$('expandAll').onclick=()=>{ const ks=[...new Set([...Object.keys(cats),...Object.keys(groups)])]; ks.forEach(k=>{const p=k.split(' > ');for(let i=1;i<p.length;i++) expanded.add(p.slice(0,i).join(' > '))}); saveOpen(); renderCats() };
+function buildPages(){$('page').replaceChildren(); for(let p=0;p<PAGES();p++){const o=document.createElement('option');o.value=p;o.textContent=`${p*PER+1}-${Math.min(N(),(p+1)*PER)}`;$('page').append(o)} $('packsel').value=pack}
+buildPages();
+$('packsel').onchange=e=>{pack=+e.target.value; try{localStorage.setItem('vit-pack',pack)}catch(x){} page=0; filter=null; buildPages(); if(view!=='sprites') setView('sprites'); else render(); scrollTo(0,0)};
 $('page').onchange=e=>{page=+e.target.value;filter=null;render();scrollTo(0,0)};
 $('prev').onclick=()=>{if(page>0){page--;filter=null;render();scrollTo(0,0)}};
-$('next').onclick=()=>{if(page<PAGES-1){page++;filter=null;render();scrollTo(0,0)}};
-$('gobtn').onclick=()=>{const id=+$('goto').value;if(id>=1&&id<=N){page=Math.floor((id-1)/PER);filter=null;sel.add(id);render()}};
+$('next').onclick=()=>{if(page<PAGES()-1){page++;filter=null;render();scrollTo(0,0)}};
+$('gobtn').onclick=()=>{const id=+$('goto').value;if(id>=1&&id<=N()){page=Math.floor((id-1)/PER);filter=null;sel.add(globalId(id));if(view!=='sprites')setView('sprites');else render()}};
 $('addcat').onclick=()=>{
   const name=$('catname').value.split('>').map(s=>s.trim()).filter(Boolean).join(' > ');
   if(!name||!sel.size){toast('Escolha um nome e selecione sprites');return}
   const ids=[...sel]; apply(()=>moveSprites(ids,name)); sel.clear(); render(); toast('Salvo em '+name);
 };
 $('clearsel').onclick=()=>{sel.clear();render()};
-$('export').onclick=()=>{const b=new Blob([JSON.stringify({categorias:cats,agrupamentos:groups},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='catalogo_sprites.json';a.click()};
+$('export').onclick=()=>{const b=new Blob([JSON.stringify({categorias:cats,agrupamentos:groups})],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='catalogo_sprites.json';a.click()};
 $('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const j=JSON.parse(t);const c=j.categorias||j, g=j.agrupamentos||{};
   apply(()=>{for(const k in c) if(Array.isArray(c[k])) cats[k]=[...new Set([...(cats[k]||[]),...c[k]])]; Object.assign(groups,g)});toast('Importado')}catch(x){toast('Arquivo inválido')}})};
 render(); tick();
